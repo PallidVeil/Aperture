@@ -215,7 +215,7 @@ void HandleInsertInput(char *buffer, Editor *editor)
     editor->length++;
     for (size_t i = editor->length; i > editor->cursor; i--)
     {
-        buffer[i + 1] = buffer[i];
+        buffer[i] = buffer[i - 1];
     }
     buffer[(editor->cursor)] = editor->input;
     moveCursorRight(editor);
