@@ -11,7 +11,7 @@ void TokenAppend(char* t_buffer, char input,size_t i)
 
 void TokenEnd(char* t_buffer,size_t* tokenCount,size_t i)
 {
-    t_buffer[i] = "\0"
+    t_buffer[i] = '\0';
     (*tokenCount)++;
 }
 
@@ -31,6 +31,22 @@ void TokenStartSingleQ(size_t i)
 {
     tokens->type = TOKEN_SINGLE_QUOTE;
     tokens->start = i;
+}
+
+void TokenStartOperator(char input)
+{
+    tokens->type = TOKEN_OPERATOR;
+
+    if (input == '|')
+        tokens->operator = TOKEN_PIPE;
+    else if (input == '&')
+        tokens->operator = TOKEN_AND;
+    else if (input == '<')
+        tokens->operator = TOKEN_REDIR_IN;
+    else if (input == '>')
+        tokens->operator = TOKEN_REDIR_OUT;
+    else
+        tokens->operator = TOKEN_INVALID;
 }
 
 void TokenChangeType(TokenType TokenTypeToChange)
@@ -78,18 +94,62 @@ void handleNormalInput(char* t_buffer, size_t* tokenCount, char input, size_t i)
         TokenStartWord(i);
         TokenAppend(t_buffer, input,i);
     } else
-        TokenAppend(t_buffer, input,i)
+        TokenAppend(t_buffer, input,i);
+}
+
+TokenOperator CheckTokenMatch(char input, TokenOperator LastToken)
+{
+    if (input == '|' && LastToken == TOKEN_PIPE)
+        return TOKEN_OR;
+    else if (input == '&' && LastToken == TOKEN_AND)
+        return TOKEN_AND_AND;
+    else if (input == '>' && LastToken == TOKEN_REDIR_OUT)
+        return TOKEN_APPEND;
+    else if (input == '<' && LastToken == TOKEN_REDIR_IN)
+        return TOKEN_HEREDOC;
+
+    return -1;
 }
 
 void handleOperator(char* t_buffer, size_t* tokenCount, char input, size_t i)
-{
-    //it is empty for now
+{   
+    
+    if(tokens->type == NULL)
+    {
+        TokenStartOperator();
+    }
+    else if(tokens->type == TOKEN_DOUBLE_QUOTE || 
+            tokens->type == TOKEN_SINGLE_QUOTE)
+    {
+        TokenAppend(t_buffer, input,i);
+    }
+    else if(tokens->type == TOKEN_WORD)
+    {
+        TokenEnd(t_buffer, tokenCount,i);
+        TokenStartOperator(input);
+    }
+    else if(tokens->type == TOKEN_OPERATOR)
+    {
+        TokenOperator match = CheckTokenMatch(input, tokens->operator);
+        if (match == -1)
+            TokenEnd(t_buffer, tokenCount,i);
+        else
+            TokenChangeType(match);
+    }
+    
 }
+
+
 
 bool isInputAnOperator(char input)
 {
-    // will change it on the next commit
-    return 0;
+    return (input == '|' ||
+            input == '<' ||
+            input == '>' ||
+            input == '&' ||
+            input == ';' ||
+            input == '(' ||
+            input == ')');
 }
 
 void handleToken(char* t_buffer, size_t* tokenCount, char input, size_t i)

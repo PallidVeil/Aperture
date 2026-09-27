@@ -20,7 +20,6 @@ typedef struct
 
 typedef enum
 {
-    TOKEN_WORD,
     TOKEN_PIPE,
     TOKEN_REDIR_IN,
     TOKEN_REDIR_OUT,
