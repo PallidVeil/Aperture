@@ -30,13 +30,14 @@ int main()
         char *buffer = malloc(BUFFER_SIZE);
         editor.length = 0;
         editor.cursor = 0;
-
+        char* lexer_buffer = malloc(BUFFER_SIZE);
         error = ReadInput(buffer, &editor);
         if (error == -1)
         {
             free(buffer);
             break;
         }
+        lexer(buffer ,lexer_buffer, &editor);
         printf("\nYou entered: %s\n", buffer);
 
 
