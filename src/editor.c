@@ -181,58 +181,68 @@ void HandleEscSequence(char *buffer, Editor *editor)
     executeEscapeSequence(type, buffer, editor);
 }
 
-void HandleInputMovement(char *buffer, Editor *editor)
+void HandleBackspace(char *buffer, Editor *editor)
 {
-    int movingWay = 0;
-    if (editor->delete)
+    if (editor->cursor <= 0)
+        return;
+        
+    for (size_t i = editor->cursor - 1; i < editor->length; i++)
     {
-        if (editor->cursor < editor->length)
-        {
-            editor->cursor++;
-            movingWay = -1;
-        }
+        buffer[i] = buffer[i + 1];
     }
-    else if (editor->input == 127) // backspace
-    {
-        if (editor->cursor > 0)
-            movingWay = -1;
-    }
-    else if (isInsertOn)
-    {
-        movingWay = 1;
-    }
-    else
-    {
-        buffer[(editor->cursor)] = editor->input;
-        if (buffer[(editor->cursor)] == '\0')
-            editor->length++;
-        writeBufferToTerminal(buffer, editor);
-        moveCursorRight(editor);
-    }
+    moveCursorLeft(editor);
+    editor->length--;
+    buffer[editor->length] = '\0';
+    writeBufferToTerminal(buffer, editor);
+}
 
-    if (movingWay == -1)
+void HandleDelete(char *buffer, Editor *editor)
+{
+    if (editor->cursor < editor->length)
     {
         for (size_t i = editor->cursor; i < editor->length; i++)
         {
             buffer[i] = buffer[i + 1];
         }
-        moveCursorLeft(editor);
         editor->length--;
         buffer[editor->length] = '\0';
         writeBufferToTerminal(buffer, editor);
     }
-    else if (movingWay == 1)
+}
+
+void HandleInsertInput(char *buffer, Editor *editor)
+{
+    editor->length++;
+    for (size_t i = editor->length; i > editor->cursor; i--)
     {
-        editor->length++;
-        for (size_t i = editor->length; i > editor->cursor; i--)
-        {
-            buffer[i + 1] = buffer[i];
-        }
-        buffer[(editor->cursor)] = editor->input;
-        moveCursorRight(editor);
-        buffer[editor->length] = '\0';
-        writeBufferToTerminal(buffer, editor);
+        buffer[i + 1] = buffer[i];
     }
+    buffer[(editor->cursor)] = editor->input;
+    moveCursorRight(editor);
+    buffer[editor->length] = '\0';
+    writeBufferToTerminal(buffer, editor);
+}
+
+void HandleOverwriteInput(char *buffer, Editor *editor)
+{
+    if (editor->cursor <= editor->length)
+    editor->length++;
+    buffer[(editor->cursor)] = editor->input;
+    writeBufferToTerminal(buffer, editor);
+    moveCursorRight(editor);
+}
+
+void HandleInputMovement(char *buffer, Editor *editor)
+{
+    if (editor->input == 127)
+        HandleBackspace(buffer, editor);
+    else if (editor->delete)
+        HandleDelete(buffer, editor);
+    else if (isInsertOn)
+        HandleInsertInput(buffer, editor);
+    else
+        HandleOverwriteInput(buffer, editor);
+    return;
 }
 
 InputType FindInputType(char input)
