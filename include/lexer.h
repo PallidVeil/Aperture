@@ -5,10 +5,11 @@
 
 typedef enum
 {
+    TOKEN_NONE,
     TOKEN_WORD,
     TOKEN_SINGLE_QUOTE,
     TOKEN_DOUBLE_QUOTE,
-    TOKEN_OPERATOR
+    TOKEN_OPERATOR,
 } TokenType;
 
 typedef struct
@@ -23,6 +24,7 @@ typedef enum
     TOKEN_PIPE,
     TOKEN_REDIR_IN,
     TOKEN_REDIR_OUT,
+    TOKEN_BACKGROUND,
     TOKEN_APPEND,
     TOKEN_HEREDOC,
     TOKEN_AND,
