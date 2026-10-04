@@ -2,6 +2,26 @@
 #include "lexer.h"
 #include "editor.h"
 
+/*
+ * there is so many things i need to change in lexer
+ * first i need to make only two typse for token word and pipe
+ * second i need to add dq sq and normal word in word category
+ * the lexer should have many types of word in one word and 
+ * if the word is gonna end it should end with either pipe or quotes
+ * 
+ * im planning to remove lexer buffer and move it to ane struct or a type of struct
+ * whats pecial about this struct is that it can crow on command so that 
+ * shell doesnt have to mess with token start or token end or any kinds of things
+ * 
+ * and i want to change the reader part too 
+ * right now it does one single thing in one time
+ * looks at the char checks what it is and then it falls it into 5 categories 
+ * in my next "attempt" i want to make it the same but change the one char  thing to
+ *  one word and look for end in only main searching func 
+ * 
+ * i will try to make the struct on this commit and will change the lexer in the other commits 
+*/
+
 Token tokens[MAX_TOKENS] = {0};
 
 void TokenAppend(char *t_buffer, char input, size_t i)
