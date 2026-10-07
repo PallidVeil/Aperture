@@ -22,7 +22,35 @@
  * i will try to make the struct on this commit and will change the lexer in the other commits 
 */
 
-Token tokens[MAX_TOKENS] = {0};
+void free_tokens(t_token *first)
+{
+    t_token *curr;
+    t_token *next;
+
+    curr = first;
+    while (curr)
+    {
+        free_words(curr->token);
+
+        next = curr->next;
+        free(curr);
+        curr = next;
+    }
+}
+
+void free_words(t_word *first)
+{
+    t_word *curr;
+    t_word *next;
+
+    curr = first;
+    while (curr)
+    {
+        next = curr->nextword;
+        free(curr);
+        curr = next;
+    }
+}
 
 void TokenAppend(char *t_buffer, char input, size_t i)
 {
@@ -33,6 +61,30 @@ void TokenEnd(char *t_buffer, size_t *tokenCount, size_t i)
 {
     t_buffer[i] = '\0';
     (*tokenCount)++;
+}
+
+t_token *create_token()
+{
+    t_token *new = malloc(sizeof(t_token));
+    if (!new)
+        return NULL;
+    new->type = TOKEN_NONE;
+    new->token = NULL;
+    new->operator_type = OP_NONE;
+    new->next = NULL;
+    return new;
+}
+
+t_word *create_word(t_word_type type,size_t start)
+{
+    t_word *new = malloc(sizeof(t_word));
+    if (!new)
+        return NULL;
+    new->start = start;
+    new->length = 0;
+    new->type = type;
+    new->nextword = NULL;
+    return new;
 }
 
 void TokenStartDoubleQ(size_t i)
@@ -194,6 +246,8 @@ void handleToken(char *t_buffer, size_t *tokenCount, char input, size_t i)
 
 int lexer(char *buffer, char *lexer_buffer, Editor *editor)
 {
+    t_token *first = create_token();
+
     size_t i = 0;
     size_t tokenCount = 0;
 
@@ -204,5 +258,7 @@ int lexer(char *buffer, char *lexer_buffer, Editor *editor)
     }
     if (tokens[i].type != NULL)
         TokenEnd(lexer_buffer, &tokenCount, i);
+
+    free_tokens(first);
     return 1;
 }
