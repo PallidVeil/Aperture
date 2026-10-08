@@ -57,10 +57,9 @@ void TokenAppend(char *t_buffer, char input, size_t i)
     t_buffer[i] = input;
 }
 
-void TokenEnd(char *t_buffer, size_t *tokenCount, size_t i)
+void TokenEnd(char *t_buffer, size_t i)
 {
     t_buffer[i] = '\0';
-    (*tokenCount)++;
 }
 
 t_token *create_token()
@@ -87,51 +86,78 @@ t_word *create_word(t_word_type type,size_t start)
     return new;
 }
 
-void TokenStartDoubleQ(size_t i)
+void word_end(t_word *word, size_t i)
 {
-    tokens[i].type = TOKEN_DOUBLE_QUOTE;
-    tokens[i].start = i;
+    word->length = i - word->start;
 }
 
-void TokenStartWord(size_t i)
+void create_new_word(t_word *word, t_word_type type, size_t start)
 {
-    tokens[i].type = TOKEN_WORD;
-    tokens[i].start = i;
+    word->nextword = create_word(type, start);
+    if (!word->nextword)
+        return;
+    word = word->nextword;
 }
 
-void TokenStartSingleQ(size_t i)
+void TokenStartDoubleQ(size_t i, t_word *word)
 {
-    tokens[i].type = TOKEN_SINGLE_QUOTE;
-    tokens[i].start = i;
+    word->type = TOKEN_DOUBLE_QUOTE;
+    word->start = i;
 }
 
-void TokenStartOperator(char input, size_t i)
+void TokenStartNormalWord(size_t i,t_word *word)
 {
-    tokens[i].type = TOKEN_OPERATOR;
+    word->type = TOKEN_WORD;
+    word->start = i;
+}
+
+void TokenStartSingleQ(size_t i,t_word *word)
+{
+    word->type = TOKEN_SINGLE_QUOTE;
+    word->start = i;
+}
+
+void TokenStartWord(size_t i, t_token *token)
+{
+    token->type = TOKEN_WORD;   
+}
+
+void TokenStartOperator(char input, t_token *token)
+{
+    token->type = TOKEN_OPERATOR;
 
     if (input == '|')
-        tokens[i].operator = TOKEN_PIPE;
+        token->operator = TOKEN_PIPE;
     else if (input == '&')
-        tokens[i].operator = TOKEN_BACKGROUND;
+        token->operator = TOKEN_BACKGROUND;
     else if (input == '<')
-        tokens[i].operator = TOKEN_REDIR_IN;
+        token->operator = TOKEN_REDIR_IN;
     else if (input == '>')
-        tokens[i].operator = TOKEN_REDIR_OUT;
+        token->operator = TOKEN_REDIR_OUT;
 
     return;
 }
 
-void TokenChangeType(TokenType TokenTypeToChange, size_t i)
+void TokenEnd(t_token *token, char *t_buffer, size_t i)
 {
-    tokens[i].type = TokenTypeToChange;
+    t_buffer[i] = '\0';
+    token->next = create_token();
+    if (!token->next)
+        return;
+    token = token->next;
+}
+
+void TokenChangeOPType(TokenType TokenTypeToChange, size_t i, t_token *token)
+{
+    token->operator_type = TokenTypeToChange;
 }
 
 void handleDoubleQuote(char *t_buffer, size_t *tokenCount, char input, size_t i)
 {
     if (tokens[i].type == NULL)
-        TokenStartDoubleQ(i);
+        TokenStartDoubleQ(i, word);
     else if (tokens[i].type == TOKEN_WORD)
-        TokenChangeType(TOKEN_DOUBLE_QUOTE, i);
+        TokenChangeOPType(TOKEN_DOUBLE_QUOTE, i, token);
     else if (tokens[i].type == TOKEN_DOUBLE_QUOTE)
         TokenEnd(t_buffer, tokenCount, i);
     else

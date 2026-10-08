@@ -1,8 +1,6 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#define MAX_TOKENS 256
-
 typedef enum e_token_type
 {
     TOKEN_WORD,
