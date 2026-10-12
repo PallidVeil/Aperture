@@ -101,7 +101,7 @@ void create_new_word(t_word *word, t_word_type type, size_t start)
 
 void TokenStartDoubleQ(size_t i, t_word *word)
 {
-    word->type = TOKEN_DOUBLE_QUOTE;
+    word->type = PART_DOUBLE_QUOTE;
     word->start = i;
 }
 
@@ -113,7 +113,7 @@ void TokenStartNormalWord(size_t i,t_word *word)
 
 void TokenStartSingleQ(size_t i,t_word *word)
 {
-    word->type = TOKEN_SINGLE_QUOTE;
+    word->type = PART_SINGLE_QUOTE;
     word->start = i;
 }
 
@@ -127,13 +127,13 @@ void TokenStartOperator(char input, t_token *token)
     token->type = TOKEN_OPERATOR;
 
     if (input == '|')
-        token->operator = TOKEN_PIPE;
+        token->operator_type = OP_PIPE;
     else if (input == '&')
-        token->operator = TOKEN_BACKGROUND;
+        token->operator_type = OP_BACKGROUND;
     else if (input == '<')
-        token->operator = TOKEN_REDIR_IN;
+        token->operator_type = OP_REDIR_IN;
     else if (input == '>')
-        token->operator = TOKEN_REDIR_OUT;
+        token->operator_type = OP_REDIR_OUT;
 
     return;
 }
@@ -147,7 +147,7 @@ void TokenEnd(t_token *token, char *t_buffer, size_t i)
     token = token->next;
 }
 
-void TokenChangeOPType(TokenType TokenTypeToChange, size_t i, t_token *token)
+void TokenChangeOPType(t_operator_type TokenTypeToChange, size_t i, t_token *token)
 {
     token->operator_type = TokenTypeToChange;
 }
@@ -157,8 +157,8 @@ void handleDoubleQuote(char *t_buffer, size_t *tokenCount, char input, size_t i)
     if (tokens[i].type == NULL)
         TokenStartDoubleQ(i, word);
     else if (tokens[i].type == TOKEN_WORD)
-        TokenChangeOPType(TOKEN_DOUBLE_QUOTE, i, token);
-    else if (tokens[i].type == TOKEN_DOUBLE_QUOTE)
+        TokenChangeOPType(PART_DOUBLE_QUOTE, i, token);
+    else if (tokens[i].type == PART_DOUBLE_QUOTE)
         TokenEnd(t_buffer, tokenCount, i);
     else
         TokenAppend(t_buffer, input, i);
@@ -166,7 +166,7 @@ void handleDoubleQuote(char *t_buffer, size_t *tokenCount, char input, size_t i)
 
 void handleSpace(char *t_buffer, size_t *tokenCount, char input, size_t i)
 {
-    if (tokens[i].type == TOKEN_SINGLE_QUOTE || tokens[i].type == TOKEN_DOUBLE_QUOTE)
+    if (tokens[i].type == PART_SINGLE_QUOTE || tokens[i].type == PART_DOUBLE_QUOTE)
         TokenAppend(t_buffer, input, i);
     else if (tokens[i].type == TOKEN_WORD)
         TokenEnd(t_buffer, tokenCount, i);
@@ -177,8 +177,8 @@ void handleSingleQuote(char *t_buffer, size_t *tokenCount, char input, size_t i)
     if (tokens[i].type == NULL)
         TokenStartDoubleQ(i);
     else if (tokens[i].type == TOKEN_WORD)
-        TokenChangeType(TOKEN_SINGLE_QUOTE, i);
-    else if (tokens[i].type == TOKEN_DOUBLE_QUOTE)
+        TokenChangeType(PART_SINGLE_QUOTE, i);
+    else if (tokens[i].type == PART_DOUBLE_QUOTE)
         TokenEnd(t_buffer, tokenCount, i);
     else
         TokenAppend(t_buffer, input, i);
@@ -195,29 +195,29 @@ void handleNormalInput(char *t_buffer, size_t *tokenCount, char input, size_t i)
         TokenAppend(t_buffer, input, i);
 }
 
-TokenOperator CheckTokenMatch(char input, TokenOperator LastToken)
+t_operator_type CheckTokenMatch(char input, t_operator_type LastToken)
 {
-    if (input == '|' && LastToken == TOKEN_PIPE)
-        return TOKEN_OR;
-    else if (input == '&' && LastToken == TOKEN_BACKGROUND)
-        return TOKEN_AND;
-    else if (input == '>' && LastToken == TOKEN_REDIR_OUT)
-        return TOKEN_APPEND;
-    else if (input == '<' && LastToken == TOKEN_REDIR_IN)
-        return TOKEN_HEREDOC;
+    if (input == '|' && LastToken == OP_PIPE)
+        return OP_OR;
+    else if (input == '&' && LastToken == OP_BACKGROUND)
+        return OP_AND;
+    else if (input == '>' && LastToken == OP_REDIR_OUT)
+        return OP_APPEND;
+    else if (input == '<' && LastToken == OP_REDIR_IN)
+        return OP_HEREDOC;
 
     return -1;
 }
 
-void handleOperator(char *t_buffer, size_t *tokenCount, char input, size_t i)
+void handleOperator(t_token *token, char *t_buffer, char input, size_t i)
 {
-    switch (tokens[i].type)
+    switch (token->operator_type)
     {
     case TOKEN_NONE:
         TokenStartOperator(input, i);
         break;
-    case TOKEN_DOUBLE_QUOTE:
-    case TOKEN_SINGLE_QUOTE:
+    case PART_DOUBLE_QUOTE:
+    case PART_SINGLE_QUOTE:
         TokenAppend(t_buffer, input, i);
         break;
     case TOKEN_WORD:
