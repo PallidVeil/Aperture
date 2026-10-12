@@ -1,6 +1,14 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+typedef enum
+{
+    DE_TOKEN_ENDSTART,
+    DE_WORD_ENDSTART,
+    DE_OP_CHANGE,
+    DE_APPEND
+}input_decision;
+
 typedef enum e_token_type
 {
     TOKEN_WORD,

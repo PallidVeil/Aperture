@@ -209,12 +209,15 @@ t_operator_type CheckTokenMatch(char input, t_operator_type LastToken)
     return -1;
 }
 
-void handleOperator(t_token *token, char *t_buffer, char input, size_t i)
+input_decision handleOperator(t_token *token, char *t_buffer, char input, size_t i)
 {
+    // im completely lost
+    
+    if ()
     switch (token->operator_type)
     {
-    case TOKEN_NONE:
-        TokenStartOperator(input, i);
+    case OP_NONE:
+        return TOKEN
         break;
     case PART_DOUBLE_QUOTE:
     case PART_SINGLE_QUOTE:
@@ -246,7 +249,7 @@ bool isInputAnOperator(char input)
             input == ')');
 }
 
-void handleToken(char *t_buffer, size_t *tokenCount, char input, size_t i)
+input_decision Decide_Token(char *t_buffer, size_t *tokenCount, char input, size_t i)
 {
     // operators will start and end within the same time so i dont handle it on the handle functions
     if (isInputAnOperator(input))
@@ -272,17 +275,36 @@ void handleToken(char *t_buffer, size_t *tokenCount, char input, size_t i)
 
 int lexer(char *buffer, char *lexer_buffer, Editor *editor)
 {
-    t_token *first = create_token();
-
+    t_token *active_token = create_token();
+    t_token *first_token;
+    first_token = active_token;
     size_t i = 0;
     size_t tokenCount = 0;
 
     while (i < editor->length)
     {
-        handleToken(lexer_buffer, &tokenCount, buffer[i], i);
+        input_decision decision = Decide_Token(lexer_buffer, &tokenCount, buffer[i], i);
         i++;
+
+        // decide token function will return the decision and then i will put a switch case and handle it 
+        // its starting to get complicated so much
+
+        /* 
+          the program probably will take a active token so we need to decide what to do later that 
+          for example we can check if the tokens word are full or if we encounter the type of tokens word is then later dexide what to do
+          
+          we need to write a checking funciton that returns if token is empty operator or a word 
+          then we'll decide what to do after that 
+
+          we need an end and start function it will first end the old token then it will start a new one by looking into the type of input
+          we need end word and start a new one funciton too
+          we need a checking funciton for us to check the last word of token
+          we need an append function
+          we need a op change function
+        
+        */
     }
-    if (tokens[i].type != NULL)
+    if (token-> != NULL)
         TokenEnd(lexer_buffer, &tokenCount, i);
 
     free_tokens(first);
