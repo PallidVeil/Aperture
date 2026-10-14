@@ -5,8 +5,10 @@ typedef enum
 {
     DE_TOKEN_ENDSTART,
     DE_WORD_ENDSTART,
-    DE_OP_CHANGE,
-    DE_APPEND
+    DE_OP_CHANGEHANDLER,
+    DE_OP_START,
+    DE_APPEND,
+    DE_ERROR
 }input_decision;
 
 typedef enum e_token_type
@@ -16,11 +18,18 @@ typedef enum e_token_type
     TOKEN_NONE
 } t_token_type;
 
+typedef struct s_lexer
+{
+    t_token *active_token;
+    t_word  *active_word;
+}   t_lexer;
+
 typedef enum e_word_type
 {
-    PART_NORMAL,
-    PART_SINGLE_QUOTE,
-    PART_DOUBLE_QUOTE
+    WORD_NORMAL,
+    WORD_SINGLE_QUOTE,
+    WORD_DOUBLE_QUOTE,
+    WORD_NONE,
 } t_word_type;
 
 typedef enum e_operator_type
@@ -53,4 +62,5 @@ typedef struct s_token
     struct s_token  *next;
 } t_token;
 
+t_lexer *lexer;
 #endif
