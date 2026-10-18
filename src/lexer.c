@@ -60,6 +60,8 @@ void TokenAppend(char *t_buffer, char input, size_t i)
 void TokenEnd(char *t_buffer, size_t i)
 {
     t_buffer[i] = '\0';
+    lexer->active_token = lexer->active_token->next;
+    lexer->active_word = NULL;
 }
 
 t_token *create_token()
@@ -98,108 +100,18 @@ void start_word(t_word *word, t_word_type type, size_t start)
         lexer->active_word = create_word(type, start);
 }
 
+void start_token(t_token *token, size_t start)
+{
+    if(lexer->active_token == NULL)
+        lexer->active_token = create_token();
+}
+
 void create_new_word(t_word *word, t_word_type type, size_t start)
 {
     word->nextword = create_word(type, start);
     if (!word->nextword)
         return;
     word = word->nextword;
-}
-/*
-void TokenStartDoubleQ(size_t i, t_word *word)
-{
-    word->type = PART_DOUBLE_QUOTE;
-    word->start = i;
-}
-
-void TokenStartNormalWord(size_t i,t_word *word)
-{
-    word->type = TOKEN_WORD;
-    word->start = i;
-}
-
-void TokenStartSingleQ(size_t i,t_word *word)
-{
-    word->type = PART_SINGLE_QUOTE;
-    word->start = i;
-}
-
-void TokenStartWord(size_t i, t_token *token)
-{
-    token->type = TOKEN_WORD;   
-}
-
-void TokenStartOperator(char input, t_token *token)
-{
-    token->type = TOKEN_OPERATOR;
-
-    if (input == '|')
-        token->operator_type = OP_PIPE;
-    else if (input == '&')
-        token->operator_type = OP_BACKGROUND;
-    else if (input == '<')
-        token->operator_type = OP_REDIR_IN;
-    else if (input == '>')
-        token->operator_type = OP_REDIR_OUT;
-
-    return;
-}
-
-void TokenEnd(t_token *token, char *t_buffer, size_t i)
-{
-    t_buffer[i] = '\0';
-    token->next = create_token();
-    if (!token->next)
-        return;
-    token = token->next;
-}
-
-void TokenChangeOPType(t_operator_type TokenTypeToChange, size_t i, t_token *token)
-{
-    token->operator_type = TokenTypeToChange;
-}
-
-void handleDoubleQuote(char *t_buffer, size_t *tokenCount, char input, size_t i)
-{
-    if (tokens[i].type == NULL)
-        TokenStartDoubleQ(i, word);
-    else if (tokens[i].type == TOKEN_WORD)
-        TokenChangeOPType(PART_DOUBLE_QUOTE, i, token);
-    else if (tokens[i].type == PART_DOUBLE_QUOTE)
-        TokenEnd(t_buffer, tokenCount, i);
-    else
-        TokenAppend(t_buffer, input, i);
-}
-
-void handleSpace(char *t_buffer, size_t *tokenCount, char input, size_t i)
-{
-    if (tokens[i].type == PART_SINGLE_QUOTE || tokens[i].type == PART_DOUBLE_QUOTE)
-        TokenAppend(t_buffer, input, i);
-    else if (tokens[i].type == TOKEN_WORD)
-        TokenEnd(t_buffer, tokenCount, i);
-}
-
-void handleSingleQuote(char *t_buffer, size_t *tokenCount, char input, size_t i)
-{
-    if (tokens[i].type == NULL)
-        TokenStartDoubleQ(i);
-    else if (tokens[i].type == TOKEN_WORD)
-        TokenChangeType(PART_SINGLE_QUOTE, i);
-    else if (tokens[i].type == PART_DOUBLE_QUOTE)
-        TokenEnd(t_buffer, tokenCount, i);
-    else
-        TokenAppend(t_buffer, input, i);
-}
-
-void handleNormalInput(char *t_buffer, size_t *tokenCount, char input, size_t i)
-{
-    if (tokens[i].type == NULL)
-    {
-        TokenStartWord(i);
-        TokenAppend(t_buffer, input, i);
-    }
-    else
-        TokenAppend(t_buffer, input, i);
 }
 
 t_operator_type CheckTokenMatch(char input, t_operator_type LastToken)
@@ -215,62 +127,6 @@ t_operator_type CheckTokenMatch(char input, t_operator_type LastToken)
 
     return -1;
 }
-
-input_decision handleOperator(t_token *token, char *t_buffer, char input, size_t i)
-{
-    // im completely lost
-    
-    if ()
-    switch (token->operator_type)
-    {
-    case OP_NONE:
-        return TOKEN
-        break;
-    case PART_DOUBLE_QUOTE:
-    case PART_SINGLE_QUOTE:
-        TokenAppend(t_buffer, input, i);
-        break;
-    case TOKEN_WORD:
-        TokenEnd(t_buffer, tokenCount, i);
-        TokenStartOperator(input, i);
-        break;
-    case TOKEN_OPERATOR:
-        TokenOperator match = CheckTokenMatch(input, tokens[i].operator);
-        if (match == -1)
-            TokenEnd(t_buffer, tokenCount, i);
-        else
-            TokenChangeType(match, i);
-        break;
-    }
-    return;
-}
-
-
-
-input_decision Decide_Token(char *t_buffer, size_t *tokenCount, char input, size_t i)
-{
-    // operators will start and end within the same time so i dont handle it on the handle functions
-    if (isInputAnOperator(input))
-    {
-        handleOperator(t_buffer, tokenCount, input, i);
-        return;
-    }
-    switch (input)
-    {
-    case ' ':
-        handleSpace(t_buffer, tokenCount, input, i);
-        break;
-    case '"':
-        handleDoubleQuote(t_buffer, tokenCount, input, i);
-        break;
-    case '\'':
-        handleSingleQuote(t_buffer, tokenCount, input, i);
-        break;
-    default:
-        handleNormalInput(t_buffer, tokenCount, input, i);
-    }
-}
-    */
 
 bool isInputAnOperator(char input)
 {
@@ -418,6 +274,122 @@ t_word_state check_word_type()
     return WORD_NONE;
 }
 
+void exec_decision(input_decision decision, char input, char *lexer_buffer, size_t *i)
+{
+    switch (decision)
+    {
+        case DE_SKIP:
+            break;
+        case DE_APPEND:
+            TokenAppend(lexer_buffer, input, *i);
+            break;
+        case DE_TOKEN_START:
+            TokenStartWord(*i, lexer->active_token);
+            break;
+        case DE_TOKEN_END:
+            TokenEnd(lexer_buffer, *i);
+            break;
+        case DE_WORD_START:
+            start_word(lexer->active_word, WORD_NORMAL, *i);
+            switch (input)
+            {
+                case '"':
+                    lexer->active_word->type = WORD_DOUBLE_QUOTE;
+                    break;
+                case '\'':
+                    lexer->active_word->type = WORD_SINGLE_QUOTE;
+                    break;
+                default:
+                    lexer->active_word->type = WORD_NORMAL;
+                    TokenAppend(lexer_buffer, input, *i);
+                    break;
+            }
+            break;
+        case DE_WORD_END:
+            end_word(lexer->active_word, *i);
+            break;
+        case DE_WORD_END_WORD_START:
+            end_word(lexer->active_word, *i);
+            start_word(lexer->active_word, WORD_NORMAL, *i);
+            switch (input)
+            {
+                case '"':
+                    lexer->active_word->type = WORD_DOUBLE_QUOTE;
+                    break;
+                case '\'':
+                    lexer->active_word->type = WORD_SINGLE_QUOTE;
+                    break;
+                default:
+                    lexer->active_word->type = WORD_NORMAL;
+                    TokenAppend(lexer_buffer, input, *i);
+                    break;
+            }
+            break;
+        case DE_WORD_END_TOKEN_START:
+            end_word(lexer->active_word, *i);
+            lexer->active_token = create_token();
+            lexer->active_word = NULL;
+            break;
+        case DE_TOKEN_END_OP_START:
+            if(lexer->active_word != NULL)
+                end_word(lexer->active_word, *i);
+            TokenEnd(lexer_buffer, *i);
+            TokenStartOperator(input, lexer->active_token);
+            break;
+        case DE_OP_START:
+            TokenStartOperator(input, lexer->active_token);
+            break;
+        case DE_OP_END:
+            TokenEnd(lexer_buffer, *i);
+            break;
+        case DE_OP_CHANGEHANDLE:
+            t_operator_type new_op_type = CheckTokenMatch(input, lexer->active_token->operator_type);
+            if (new_op_type != -1)
+                lexer->active_token->operator_type = new_op_type;
+            else
+            {
+                TokenEnd(lexer_buffer, *i);
+                lexer->active_token = create_token();
+                switch (input)
+                {
+                    case '|':
+                        lexer->active_token->operator_type = OP_PIPE;
+                        break;
+                    case '&':
+                        lexer->active_token->operator_type = OP_BACKGROUND;
+                        break;
+                    case '<':
+                        lexer->active_token->operator_type = OP_REDIR_IN;
+                        break;
+                    case '>':
+                        lexer->active_token->operator_type = OP_REDIR_OUT;
+                        break;
+                }
+            }
+            break;
+        case DE_OP_END_WORD_START:
+            TokenEnd(lexer_buffer, *i);
+            lexer->active_token = create_token();
+            start_word(lexer->active_word, WORD_NORMAL, *i);
+            switch (input)
+            {
+                case '"':
+                    lexer->active_word->type = WORD_DOUBLE_QUOTE;
+                    break;
+                case '\'':  
+                    lexer->active_word->type = WORD_SINGLE_QUOTE;
+                    break;
+                default:
+                    lexer->active_word->type = WORD_NORMAL;
+                    TokenAppend(lexer_buffer, input, *i);
+                    break;
+            }
+        default:
+            // error handling
+            break;
+    }
+}
+
 int lexer(char *buffer, char *lexer_buffer, Editor *editor)
 {
     lexer->active_token = create_token();
@@ -430,6 +402,7 @@ int lexer(char *buffer, char *lexer_buffer, Editor *editor)
     {   
 
         i++;
+        input_decision decision = lexer_read(buffer, lexer_buffer, &i, lexer->active_token, lexer->active_word);
 
         // decide token function will return the decision and then i will put a switch case and handle it 
         // its starting to get complicated so much
@@ -449,7 +422,7 @@ int lexer(char *buffer, char *lexer_buffer, Editor *editor)
         
         */
     }
-    if (token-> != NULL)
+    if (lexer->active_token != NULL)
         TokenEnd(lexer_buffer, &tokenCount, i);
 
     free_tokens(first);
