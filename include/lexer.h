@@ -3,12 +3,20 @@
 
 typedef enum
 {
-    DE_TOKEN_ENDSTART,
-    DE_WORD_ENDSTART,
-    DE_OP_CHANGEHANDLER,
-    DE_OP_START,
+    DE_SKIP,
     DE_APPEND,
-    DE_ERROR
+    DE_TOKEN_START,
+    DE_TOKEN_END,
+    DE_WORD_START,
+    DE_WORD_END,
+
+    DE_WORD_END_WORD_START,
+    DE_WORD_END_TOKEN_START,
+
+    DE_TOKEN_END_OP_START,
+    DE_OP_START,
+    DE_OP_END,
+    DE_OP_END_WORD_START
 }input_decision;
 
 typedef enum e_token_type

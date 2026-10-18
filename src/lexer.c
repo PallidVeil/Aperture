@@ -283,7 +283,7 @@ input_decision Decide_Token(char *t_buffer, size_t *tokenCount, char input, size
 
 input_decision lexer_read(char *buffer, char *lexer_buffer, size_t *i, t_token *token, t_word *word)
 {
-    // what i have in my mind is that f there is no active word the function ill allocate a new one if the word ends 
+    // what i have in my mind is that if there is no active word the function ill allocate a new one if the word ends 
     // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
     char input = buffer[*i];
 
