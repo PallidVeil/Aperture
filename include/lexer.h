@@ -16,7 +16,10 @@ typedef enum
     DE_TOKEN_END_OP_START,
     DE_OP_START,
     DE_OP_END,
-    DE_OP_END_WORD_START
+    DE_OP_CHANGEHANDLE,
+    DE_OP_END_WORD_START,
+
+    DE_ERROR
 }input_decision;
 
 typedef enum e_token_type
@@ -37,7 +40,7 @@ typedef enum e_word_type
     WORD_NORMAL,
     WORD_SINGLE_QUOTE,
     WORD_DOUBLE_QUOTE,
-    WORD_NONE,
+    WORD_NULL,
 } t_word_type;
 
 typedef enum e_operator_type

@@ -245,16 +245,7 @@ input_decision handleOperator(t_token *token, char *t_buffer, char input, size_t
     return;
 }
 
-bool isInputAnOperator(char input)
-{
-    return (input == '|' ||
-            input == '<' ||
-            input == '>' ||
-            input == '&' ||
-            input == ';' ||
-            input == '(' ||
-            input == ')');
-}
+
 
 input_decision Decide_Token(char *t_buffer, size_t *tokenCount, char input, size_t i)
 {
@@ -281,6 +272,17 @@ input_decision Decide_Token(char *t_buffer, size_t *tokenCount, char input, size
 }
     */
 
+bool isInputAnOperator(char input)
+{
+    return (input == '|' ||
+            input == '<' ||
+            input == '>' ||
+            input == '&' ||
+            input == ';' ||
+            input == '(' ||
+            input == ')');
+}
+
 input_decision lexer_read(char *buffer, char *lexer_buffer, size_t *i, t_token *token, t_word *word)
 {
     // what i have in my mind is that if there is no active word the function ill allocate a new one if the word ends 
@@ -289,87 +291,100 @@ input_decision lexer_read(char *buffer, char *lexer_buffer, size_t *i, t_token *
 
     t_token_type token_type = check_token_type(token);
     t_word_type word_type;
-    if (token_type == TOKEN_WORD)
+    if (word != NULL)
         word_type = check_word_type(word);
+    else
+        word_type = WORD_NULL;
 
-    if(token_type == TOKEN_NONE)
-    {
-        if (isInputAnOperator(input))
-            return DE_OP_START;
-        else
-            return handleInputTypes(token_type, word_type, input); // it needs to check if its space or not then it needs to start a new word in this token
-    }
-    else if(token_type == TOKEN_OPERATOR)
-    {
-        if (isInputAnOperator(input))
-            return DE_OP_CHANGEHANDLER;
-        else
-            return handleInputTypes(token_type, word_type, input); // it needs to end the token and start a new token and if it needs it needs to create
-        // a new word too
-    }
-    else if(token_type == TOKEN_WORD)
-    {
-        return handleInputTypes(token_type, word_type, input); // it needs to check if the active word situation whether the word is finished or not then 
-    }
-
-    return DE_ERROR;
+    
+    return handleInputTypes(token_type, word_type, input);
 }
 
 input_decision handleInputTypes(t_token_type token_type, t_word_type word_type, char input)
 {
     switch (token_type)
     {
-    case TOKEN_NONE:
-        if (input == ' ')
-            return DE_SKIP;
-        else
-            return DE_TOKEN_WORD_START;
-        break;
-    case TOKEN_OPERATOR:
-        if(input == ' ')
-            return DE_TOKEN_ENDSTART;
-        else
-            return DE_TOKEN_WORD_ENDSTART;
-        break;
-    case TOKEN_WORD:
-        switch (word_type)
-        {
-        case WORD_NONE:
-            if (input == ' ')
-                return DE_SKIP;
+        case TOKEN_NONE:
+            if (isInputAnOperator(input))
+                return DE_OP_START;
             else
-                return DE_WORD_START;
-            break;
-        case WORD_NORMAL:
-            if (input == ' ')
-                return DE_WORD_END;
-            else if (input == '"' || input == '\'')
-                return DE_WORD_ENDSTART;
+                switch (input)
+                {
+                    case ' ':
+                        return DE_SKIP;
+                    case '"':
+                        return DE_WORD_START;
+                    case '\'':
+                        return DE_WORD_START;
+                    default:
+                        return DE_WORD_START;
+                }
+        case TOKEN_WORD:
+            switch (word_type)
+                {
+                    case WORD_NULL:
+                        if (isInputAnOperator(input))
+                            return DE_WORD_END_OP_START;
+                        else
+                            switch (input)
+                            {
+                                case ' ':
+                                    return DE_WORD_END;
+                                case '"':
+                                    return DE_WORD_START;
+                                case '\'':
+                                    return DE_WORD_START;
+                                default:
+                                    return DE_APPEND;
+                            }
+                    case WORD_NORMAL:
+                        if (isInputAnOperator(input))
+                            return DE_WORD_END_OP_START;
+                        else
+                            switch (input)
+                            {
+                                case ' ':
+                                    return DE_WORD_END;
+                                case '"':
+                                    return DE_WORD_END_WORD_START;
+                                case '\'':
+                                    return DE_WORD_END_WORD_START;
+                                default:
+                                    return DE_APPEND;
+                            }
+                    case WORD_SINGLE_QUOTE:
+                            switch (input)
+                            {
+                                case '\'':
+                                    return DE_WORD_END;
+                                default:
+                                    return DE_APPEND;
+                            }
+                    case WORD_DOUBLE_QUOTE:
+                            switch (input)
+                            {
+                                case '"':
+                                    return DE_WORD_END;
+                                default:
+                                    return DE_APPEND;
+                            }
+                }
+        case TOKEN_OPERATOR:
+            if (isInputAnOperator(input))
+                return DE_OP_CHANGEHANDLE;
             else
-                return DE_APPEND;
-            break;
-        case WORD_SINGLE_QUOTE:
-            if (input == '\'')
-                return DE_WORD_ENDSTART;
-            else
-                return DE_APPEND;
-            break;
-        case WORD_DOUBLE_QUOTE:
-            if (input == '"')
-                return DE_WORD_ENDSTART;
-            else
-                return DE_APPEND;
-            break;
-        case WORD_FINISHED:
-            if (input == ' ')
-                return DE_TOKEN_ENDSTART;
-            else if (input == '"' || input == '\'')
-                return DE_WORD_ENDSTART;
-            else
-                return DE_APPEND;
-            break;
-        }
-    }       
+                switch (input)
+                {
+                    case ' ':
+                        return DE_OP_END;
+                    case '"':
+                        return DE_OP_END_WORD_START;
+                    case '\'':
+                        return DE_OP_END_WORD_START;
+                    default:
+                        return DE_OP_END_WORD_START;
+                }
+    }
 }
 
 
