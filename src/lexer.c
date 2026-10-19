@@ -262,16 +262,9 @@ t_word_state check_word_type()
 {
     t_word *word = lexer->active_word;
     if (word == NULL)
-        return WORD_NONE;
-    else if (word->length != 0)
-        return WORD_FINISHED;
-    else if (word->type == WORD_NORMAL)
-        return WORD_NORMAL;
-    else if (word->type == WORD_SINGLE_QUOTE)
-        return WORD_SINGLE_QUOTE;
-    else if (word->type == WORD_DOUBLE_QUOTE)
-        return WORD_DOUBLE_QUOTE;
-    return WORD_NONE;
+        return WORD_NULL;
+    else 
+        return word->type;
 }
 
 void exec_decision(input_decision decision, char input, char *lexer_buffer, size_t *i)
@@ -390,7 +383,7 @@ void exec_decision(input_decision decision, char input, char *lexer_buffer, size
     }
 }
 
-int lexer(char *buffer, char *lexer_buffer, Editor *editor)
+int lex(char *buffer, char *lexer_buffer, Editor *editor)
 {
     lexer->active_token = create_token();
     t_token *first_token;
@@ -422,8 +415,6 @@ int lexer(char *buffer, char *lexer_buffer, Editor *editor)
         
         */
     }
-    if (lexer->active_token != NULL)
-        TokenEnd(lexer_buffer, &tokenCount, i);
 
     free_tokens(first);
     return 1;

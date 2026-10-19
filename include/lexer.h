@@ -29,12 +29,6 @@ typedef enum e_token_type
     TOKEN_NONE
 } t_token_type;
 
-typedef struct s_lexer
-{
-    t_token *active_token;
-    t_word  *active_word;
-}   t_lexer;
-
 typedef enum e_word_type
 {
     WORD_NORMAL,
@@ -72,6 +66,12 @@ typedef struct s_token
     t_operator_type operator_type;
     struct s_token  *next;
 } t_token;
+
+typedef struct s_lexer
+{
+    t_token *active_token;
+    t_word  *active_word;
+}   t_lexer;
 
 t_lexer *lexer;
 #endif

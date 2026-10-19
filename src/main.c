@@ -42,6 +42,7 @@ int main()
 
 
         free(buffer);
+        free(lexer_buffer);
         break;
     }
 }
