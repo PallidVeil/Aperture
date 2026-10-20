@@ -1,26 +1,36 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-typedef enum
+typedef enum e_lexer_decision
 {
-    DE_SKIP,
-    DE_APPEND,
-    DE_TOKEN_START,
-    DE_TOKEN_END,
-    DE_WORD_START,
-    DE_WORD_END,
+    DC_START_NW,// START MEANS ALLOCATE
+    DC_END_NW,// NW MEANS NORMAL WORD 
 
-    DE_WORD_END_WORD_START,
-    DE_WORD_END_TOKEN_START,
+    DC_START_SQ,// SQ MEANS SINGLE QUOTE
+    DC_END_SQ,
 
-    DE_TOKEN_END_OP_START,
-    DE_OP_START,
-    DE_OP_END,
-    DE_OP_CHANGEHANDLE,
-    DE_OP_END_WORD_START,
+    DC_START_DQ,// DQ MEANS DOUBLE QUOTE
+    DC_END_DQ,
 
-    DE_ERROR
-}input_decision;
+    DC_START_OPERATOR,
+    DC_OPERATOR_CHANGE,
+
+    DC_START_TOKEN,
+    DC_NEXT_TOKEN,
+    DC_APPEND,
+    DC_SKIP,
+    DC_END
+}   input_decision;
+
+typedef enum e_char_type
+{
+    CHAR_NORMAL,
+    CHAR_WHITESPACE,
+    CHAR_SINGLE_QUOTE,
+    CHAR_DOUBLE_QUOTE,
+    CHAR_OPERATOR,
+    CHAR_EOF
+}   t_char_type;
 
 typedef enum e_token_type
 {
@@ -73,5 +83,13 @@ typedef struct s_lexer
     t_word  *active_word;
 }   t_lexer;
 
+typedef struct s_decision
+{
+    int dec_count;
+    input_decision dec1;
+    input_decision dec2;
+} i_decision;
+
 t_lexer *lexer;
+i_decision decisions;
 #endif

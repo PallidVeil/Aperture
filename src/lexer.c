@@ -91,7 +91,7 @@ t_word *create_word(t_word_type type,size_t start)
 void end_word(t_word *word, size_t i)
 {
     word->length = i - word->start;
-    lexer->active_word = lexer->active_word->next;
+    lexer->active_word = lexer->active_word->nextword;
 }
 
 void start_word(t_word *word, t_word_type type, size_t start)
@@ -139,42 +139,56 @@ bool isInputAnOperator(char input)
             input == ')');
 }
 
+t_char_type check_char_type(int input)
+{
+    if (input == EOF)
+        return CHAR_EOF;
+
+    if (isInputAnOperator(input))
+        return CHAR_OPERATOR;
+
+    switch (input)
+    {
+        case ' ':
+        case '\t':
+            return CHAR_WHITESPACE;
+        case '"':
+            return CHAR_DOUBLE_QUOTE;
+        case '\'':
+            return CHAR_SINGLE_QUOTE;
+        default:
+            return CHAR_NORMAL;
+    }
+}
+
 input_decision lexer_read(char *buffer, char *lexer_buffer, size_t *i, t_token *token, t_word *word)
 {
     // what i have in my mind is that if there is no active word the function ill allocate a new one if the word ends 
     // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
     char input = buffer[*i];
 
-    t_token_type token_type = check_token_type(token);
+    t_token_type token_type = check_token_type();
     t_word_type word_type;
     if (word != NULL)
-        word_type = check_word_type(word);
+        word_type = check_word_type();
     else
         word_type = WORD_NULL;
+    t_char_type char_type = check_char_type(input);
 
     
-    return handleInputTypes(token_type, word_type, input);
+    return handleInputTypes(token_type, word_type, char_type);
 }
 
-input_decision handleInputTypes(t_token_type token_type, t_word_type word_type, char input)
+input_decision handleInputTypes(t_token_type token_type, t_word_type word_type, t_char_type char_type)
 {
+    decisions.dec_count = 0;
     switch (token_type)
     {
         case TOKEN_NONE:
-            if (isInputAnOperator(input))
-                return DE_OP_START;
-            else
-                switch (input)
-                {
-                    case ' ':
-                        return DE_SKIP;
-                    case '"':
-                        return DE_WORD_START;
-                    case '\'':
-                        return DE_WORD_START;
-                    default:
-                        return DE_WORD_START;
-                }
+            switch(char_type)
+            {
+            }
+            break;
         case TOKEN_WORD:
             switch (word_type)
                 {
