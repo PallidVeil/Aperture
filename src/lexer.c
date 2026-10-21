@@ -52,7 +52,7 @@ void free_words(t_word *first)
     }
 }
 
-void TokenAppend(char *t_buffer, char input, size_t i)
+void TokenAppend(char *t_buffer, int input, size_t i)
 {
     t_buffer[i] = input;
 }
@@ -114,7 +114,7 @@ void create_new_word(t_word *word, t_word_type type, size_t start)
     word = word->nextword;
 }
 
-t_operator_type CheckTokenMatch(char input, t_operator_type LastToken)
+t_operator_type CheckTokenMatch(int input, t_operator_type LastToken)
 {
     if (input == '|' && LastToken == OP_PIPE)
         return OP_OR;
@@ -128,7 +128,7 @@ t_operator_type CheckTokenMatch(char input, t_operator_type LastToken)
     return -1;
 }
 
-bool isInputAnOperator(char input)
+bool isInputAnOperator(int input)
 {
     return (input == '|' ||
             input == '<' ||
@@ -161,11 +161,11 @@ t_char_type check_char_type(int input)
     }
 }
 
-input_decision lexer_read(char *buffer, char *lexer_buffer, size_t *i, t_token *token, t_word *word)
+void lexer_read(char *buffer, char *lexer_buffer, size_t i, t_token *token, t_word *word)
 {
     // what i have in my mind is that if there is no active word the function ill allocate a new one if the word ends 
     // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
-    char input = buffer[*i];
+    int input = fgetc()buffer[*i];
 
     t_token_type token_type = check_token_type();
     t_word_type word_type;
@@ -175,86 +175,264 @@ input_decision lexer_read(char *buffer, char *lexer_buffer, size_t *i, t_token *
         word_type = WORD_NULL;
     t_char_type char_type = check_char_type(input);
 
-    
-    return handleInputTypes(token_type, word_type, char_type);
+    handleInputTypes(token_type, word_type, char_type, input);
+    return;
 }
 
-input_decision handleInputTypes(t_token_type token_type, t_word_type word_type, t_char_type char_type)
+void handleNormalWord(t_char_type char_type)
+{
+    switch(char_type)
+    {
+    case CHAR_NORMAL:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_WHITESPACE:
+        decisions.dec_count = 2;
+        decisions.dec1 = DC_END_NW;
+        decisions.dec2 = DC_NEXT_TOKEN;
+        break;
+    case CHAR_SINGLE_QUOTE:
+        decisions.dec_count = 2;
+        decisions.dec1 = DC_END_NW;
+        decisions.dec2 = DC_START_SQ;
+        break;
+    case CHAR_DOUBLE_QUOTE:
+        decisions.dec_count = 2;
+        decisions.dec1 = DC_END_NW;
+        decisions.dec2 = DC_START_DQ;
+        break;
+    case CHAR_OPERATOR:
+        decisions.dec_count = 3;
+        decisions.dec1 = DC_END_NW;
+        decisions.dec2 = DC_NEXT_TOKEN;
+        decisions.dec3 = DC_START_OPERATOR;
+        break;
+    case CHAR_EOF:
+        decisions.dec_count = 3;
+        decisions.dec1 = DC_END_NW;
+        decisions.dec2 = DC_END_TOKEN;
+        decisions.dec3 = DC_END;
+        break;
+    }
+}
+
+void handleSingleQuote(t_char_type char_type)
+{
+    switch(char_type)
+    {
+    case CHAR_NORMAL:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_WHITESPACE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_SINGLE_QUOTE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_END_SQ;
+        break;
+    case CHAR_DOUBLE_QUOTE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_OPERATOR:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_EOF:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_ERROR;
+        break;
+    }
+}
+
+void handleDoubleQuote(t_char_type char_type)
+{
+    switch(char_type)
+    {
+    case CHAR_NORMAL:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_WHITESPACE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_SINGLE_QUOTE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_DOUBLE_QUOTE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_END_DQ;
+        break;
+    case CHAR_OPERATOR:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_APPEND;
+        break;
+    case CHAR_EOF:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_ERROR;
+        break;
+    }
+}
+
+void handleWordNull(t_char_type char_type)
+{
+    switch(char_type)
+    {
+    case CHAR_NORMAL:
+        decisions.dec_count = 2;
+        decisions.dec1 = DC_START_NW;
+        decisions.dec2 = DC_APPEND;
+        break;
+    case CHAR_WHITESPACE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_NEXT_TOKEN;
+        break;
+    case CHAR_SINGLE_QUOTE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_START_SQ;
+        break;
+    case CHAR_DOUBLE_QUOTE:
+        decisions.dec_count = 1;
+        decisions.dec1 = DC_START_DQ;
+        break;
+    case CHAR_OPERATOR:
+        decisions.dec_count = 2;
+        decisions.dec1 = DC_NEXT_TOKEN;
+        decisions.dec2 = DC_START_OPERATOR;
+        break;
+    case CHAR_EOF:
+        decisions.dec_count = 2;
+        decisions.dec1 = DC_TOKEN_END;
+        decisions.dec2 = DC_END;
+        break;
+    }
+}
+
+void handleTokenNone(t_char_type char_type)
+{
+    switch(char_type)
+    {
+        case CHAR_NORMAL:
+            decisions.dec_count = 3;
+            decisions.dec1 = DC_START_TOKEN;
+            decisions.dec2 = DC_START_NW;
+            decisions.dec3 = DC_APPEND;
+            break;
+        case CHAR_WHITESPACE:
+            decisions.dec_count = 1;
+            decisions.dec1 = DC_SKIP;
+            break;
+        case CHAR_SINGLE_QUOTE:
+            decisions.dec_count = 2;
+            decisions.dec1 = DC_START_TOKEN;
+            decisions.dec2 = DC_START_SQ;
+            break;
+        case CHAR_DOUBLE_QUOTE:
+            decisions.dec_count = 2;
+            decisions.dec1 = DC_START_TOKEN;
+            decisions.dec2 = DC_START_DQ;
+            break;
+        case CHAR_OPERATOR:
+            decisions.dec_count = 2;
+            decisions.dec1 = DC_START_TOKEN;
+            decisions.dec2 = DC_START_OPERATOR;
+            break;
+        case CHAR_EOF:
+            decisions.dec_count = 1;
+            decisions.dec1 = DC_END;
+            break;
+    }
+    return;
+}
+
+void handleTokenWord(t_word_type word_type, t_char_type char_type)
+{
+    switch (word_type)
+    {
+        case WORD_NORMAL:
+            handleNormalWord(char_type);
+            return;
+        case WORD_SINGLE_QUOTE:
+            handleSingleQuote(char_type);
+            return;
+        case WORD_DOUBLE_QUOTE:
+            handleDoubleQuote(char_type);
+            return;
+        case WORD_NULL:
+            handleWordNull(char_type);
+    }
+    return;
+}
+
+void handleTokenOperator(t_char_type char_type, int input)
+{
+    switch(char_type)
+    {
+        case CHAR_NORMAL:
+            decisions.dec_count = 3;
+            decisions.dec1 = DC_NEXT_TOKEN;
+            decisions.dec2 = DC_START_NW;
+            decisions.dec3 = DC_APPEND;
+            break;
+        case CHAR_WHITESPACE:
+            decisions.dec_count = 1;
+            decisions.dec1 = DC_NEXT_TOKEN;
+            break;
+        case CHAR_SINGLE_QUOTE:
+            decisions.dec_count = 2;
+            decisions.dec1 = DC_NEXT_TOKEN;
+            decisions.dec2 = DC_START_SQ;
+            break;
+        case CHAR_DOUBLE_QUOTE:
+            decisions.dec_count = 2;
+            decisions.dec1 = DC_NEXT_TOKEN;
+            decisions.dec2 = DC_START_DQ;
+            break;
+        case CHAR_OPERATOR:
+        {
+            t_operator_type match = CheckTokenMatch(input, lexer->active_token->operator_type);
+            if(match != -1)
+            {
+                decisions.dec_count = 1;
+                decisions.dec1 = DC_OPERATOR_CHANGE;
+            } else {
+                decisions.dec_count = 2;
+                decisions.dec1 = DC_NEXT_TOKEN;
+                decisions.dec2 = DC_START_OPERATOR;
+            }
+        }
+            break;
+        case CHAR_EOF:
+            decisions.dec_count = 1;
+            decisions.dec1 = DC_END;
+            break;
+    }
+    return;
+}
+
+
+
+void handleInputTypes(t_token_type token_type, t_word_type word_type, t_char_type char_type, int input)
 {
     decisions.dec_count = 0;
     switch (token_type)
     {
         case TOKEN_NONE:
-            switch(char_type)
-            {
-            }
-            break;
+            handleTokenNone(char_type);
+            return;
         case TOKEN_WORD:
-            switch (word_type)
-                {
-                    case WORD_NULL:
-                        if (isInputAnOperator(input))
-                            return DE_WORD_END_OP_START;
-                        else
-                            switch (input)
-                            {
-                                case ' ':
-                                    return DE_WORD_END;
-                                case '"':
-                                    return DE_WORD_START;
-                                case '\'':
-                                    return DE_WORD_START;
-                                default:
-                                    return DE_APPEND;
-                            }
-                    case WORD_NORMAL:
-                        if (isInputAnOperator(input))
-                            return DE_WORD_END_OP_START;
-                        else
-                            switch (input)
-                            {
-                                case ' ':
-                                    return DE_WORD_END;
-                                case '"':
-                                    return DE_WORD_END_WORD_START;
-                                case '\'':
-                                    return DE_WORD_END_WORD_START;
-                                default:
-                                    return DE_APPEND;
-                            }
-                    case WORD_SINGLE_QUOTE:
-                            switch (input)
-                            {
-                                case '\'':
-                                    return DE_WORD_END;
-                                default:
-                                    return DE_APPEND;
-                            }
-                    case WORD_DOUBLE_QUOTE:
-                            switch (input)
-                            {
-                                case '"':
-                                    return DE_WORD_END;
-                                default:
-                                    return DE_APPEND;
-                            }
-                }
+            handleTokenWord(word_type, char_type);
+            return;
         case TOKEN_OPERATOR:
-            if (isInputAnOperator(input))
-                return DE_OP_CHANGEHANDLE;
-            else
-                switch (input)
-                {
-                    case ' ':
-                        return DE_OP_END;
-                    case '"':
-                        return DE_OP_END_WORD_START;
-                    case '\'':
-                        return DE_OP_END_WORD_START;
-                    default:
-                        return DE_OP_END_WORD_START;
-                }
+            handleTokenOperator(char_type, input);
+            return;
     }
+    return;
 }
 
 
@@ -281,7 +459,7 @@ t_word_state check_word_type()
         return word->type;
 }
 
-void exec_decision(input_decision decision, char input, char *lexer_buffer, size_t *i)
+void exec_decision(input_decision decision, int input, char *lexer_buffer, size_t *i)
 {
     switch (decision)
     {
@@ -409,7 +587,7 @@ int lex(char *buffer, char *lexer_buffer, Editor *editor)
     {   
 
         i++;
-        input_decision decision = lexer_read(buffer, lexer_buffer, &i, lexer->active_token, lexer->active_word);
+        lexer_read(buffer, lexer_buffer, i, lexer->active_token, lexer->active_word);
 
         // decide token function will return the decision and then i will put a switch case and handle it 
         // its starting to get complicated so much

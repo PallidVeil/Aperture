@@ -3,7 +3,7 @@
 
 typedef enum e_lexer_decision
 {
-    DC_START_NW,// START MEANS ALLOCATE
+    DC_START_NW,// START MEANS ALLOCATE it will allocate token if needed to, and it will also append it 
     DC_END_NW,// NW MEANS NORMAL WORD 
 
     DC_START_SQ,// SQ MEANS SINGLE QUOTE
@@ -19,7 +19,8 @@ typedef enum e_lexer_decision
     DC_NEXT_TOKEN,
     DC_APPEND,
     DC_SKIP,
-    DC_END
+    DC_END,
+    DC_ERROR
 }   input_decision;
 
 typedef enum e_char_type
@@ -88,6 +89,8 @@ typedef struct s_decision
     int dec_count;
     input_decision dec1;
     input_decision dec2;
+    input_decision dec3;
+    input_decision dec4;
 } i_decision;
 
 t_lexer *lexer;
