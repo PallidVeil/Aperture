@@ -32,7 +32,8 @@ typedef enum e_char_type
     CHAR_SINGLE_QUOTE,
     CHAR_DOUBLE_QUOTE,
     CHAR_OPERATOR,
-    CHAR_EOF
+    CHAR_EOF,
+    CHAR_NULL
 }   t_char_type;
 
 typedef enum e_token_type
@@ -75,7 +76,7 @@ typedef struct s_word
 typedef struct s_token
 {
     t_token_type    type;
-    t_word          *token;
+    t_word          *word;
     t_operator_type operator_type;
     struct s_token  *next;
 } t_token;
@@ -91,5 +92,7 @@ typedef struct s_decision
     int dec_count;
     input_decision dec[3];
 } i_decision;
+
+int lex(char *buffer, char *lexer_buffer, size_t length);
 
 #endif

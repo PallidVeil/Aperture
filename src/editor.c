@@ -272,7 +272,7 @@ void setInsertOrOverwriteCursor(void)
         printf("\033[2 q");
 }
 
-int handleInputTypes(char *buffer, Editor *editor, InputType type)
+int handleEditorInputTypes(char *buffer, Editor *editor, InputType type)
 {
     switch (type)
     {
@@ -296,6 +296,8 @@ int handleInputTypes(char *buffer, Editor *editor, InputType type)
     case INPUT_ESCAPE:
         HandleEscSequence(buffer, editor);
         return 0;
+        break;
+    default:
         break;
     }
     return 0;

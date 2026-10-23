@@ -42,7 +42,7 @@ void moveCursorEnd(Editor *editor);
 InputType FindInputType(char input);
 InputType parseEscapeSequence(const char *sequence);
 int executeEscapeSequence(InputType type, char *buffer, Editor *editor);
-int handleInputTypes(char *buffer, Editor *editor, InputType type);
+int handleEditorInputTypes(char *buffer, Editor *editor, InputType type);
 
 void setInsertOrOverwriteCursor(void);
 void HandleInputMovement(char *buffer, Editor *editor);

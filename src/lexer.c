@@ -3,7 +3,7 @@
 #include "editor.h"
 
 
-t_lexer *lexer;
+t_lexer *lexer = NULL;
 i_decision decisions;
 
 /*
@@ -26,22 +26,6 @@ i_decision decisions;
  * i will try to make the struct on this commit and will change the lexer in the other commits 
 */
 
-void free_tokens(t_token *first)
-{
-    t_token *curr;
-    t_token *next;
-
-    curr = first;
-    while (curr)
-    {
-        free_words(curr->token);
-
-        next = curr->next;
-        free(curr);
-        curr = next;
-    }
-}
-
 void free_words(t_word *first)
 {
     t_word *curr;
@@ -51,6 +35,22 @@ void free_words(t_word *first)
     while (curr)
     {
         next = curr->nextword;
+        free(curr);
+        curr = next;
+    }
+}
+
+void free_tokens(t_token *first)
+{
+    t_token *curr;
+    t_token *next;
+
+    curr = first;
+    while (curr)
+    {
+        free_words(curr->word);
+
+        next = curr->next;
         free(curr);
         curr = next;
     }
@@ -74,7 +74,7 @@ t_token *create_token()
     if (!new)
         return NULL;
     new->type = TOKEN_NONE;
-    new->token = NULL;
+    new->word = NULL;
     new->operator_type = OP_NONE;
     new->next = NULL;
     return new;
@@ -110,7 +110,14 @@ void start_token()
         lexer->active_token = create_token();
 }
 
-t_operator_type CheckTokenMatch(int input, t_operator_type LastToken)
+
+void errorHandle()
+{
+
+}
+
+
+t_operator_type CheckTokenMatch(char input, t_operator_type LastToken)
 {
     if (input == '|' && LastToken == OP_PIPE)
         return OP_OR;
@@ -121,10 +128,10 @@ t_operator_type CheckTokenMatch(int input, t_operator_type LastToken)
     else if (input == '<' && LastToken == OP_REDIR_IN)
         return OP_HEREDOC;
 
-    return -1;
+    return OP_NONE;
 }
 
-bool isInputAnOperator(int input)
+bool isInputAnOperator(char input)
 {
     return (input == '|' ||
             input == '<' ||
@@ -135,7 +142,7 @@ bool isInputAnOperator(int input)
             input == ')');
 }
 
-t_char_type check_char_type(int input)
+t_char_type check_char_type(char input)
 {
     if (input == EOF)
         return CHAR_EOF;
@@ -157,26 +164,27 @@ t_char_type check_char_type(int input)
     }
 }
 
-void lexer_read(char *lexer_buffer, size_t i, t_token *token, t_word *word, size_t length)
+t_token_type check_token_type()
 {
-    // what i have in my mind is that if there is no active word the function ill allocate a new one if the word ends 
-    // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
+    t_token *token = lexer->active_token;
+    if (token == NULL)
+        return TOKEN_NONE;
+    if (token->type == TOKEN_NONE)
+        return TOKEN_NONE;
+    else if (token->type == TOKEN_WORD)
+        return TOKEN_WORD;
+    else if (token->type == TOKEN_OPERATOR)
+        return TOKEN_OPERATOR;
+    return TOKEN_NONE;
+}
 
-    t_token_type token_type = check_token_type();
-    t_word_type word_type;
-    if (word != NULL)
-        word_type = check_word_type();
-    else
-        word_type = WORD_NULL;
-    if(i >= length)
-    {
-        handleInputTypes(token_type, word_type, CHAR_EOF, input);
-        return;
-    }
-    int input = buffer[i];
-    t_char_type char_type = check_char_type(input);
-    handleInputTypes(token_type, word_type, char_type, input);
-    return;
+t_word_type check_word_type()
+{
+    t_word *word = lexer->active_word;
+    if (word == NULL)
+        return WORD_NULL;
+    else 
+        return word->type;
 }
 
 void handleNormalWord(t_char_type char_type)
@@ -211,8 +219,11 @@ void handleNormalWord(t_char_type char_type)
     case CHAR_EOF:
         decisions.dec_count = 3;
         decisions.dec[0] = DC_END_NW;
-        decisions.dec[1] = DC_END_TOKEN;
+        decisions.dec[1] = DC_NEXT_TOKEN;
         decisions.dec[2] = DC_END;
+        break;
+    default:
+        errorHandle();
         break;
     }
 }
@@ -245,6 +256,9 @@ void handleSingleQuote(t_char_type char_type)
         decisions.dec_count = 1;
         decisions.dec[0] = DC_ERROR;
         break;
+    default:
+        errorHandle();
+        break;
     }
 }
 
@@ -276,6 +290,9 @@ void handleDoubleQuote(t_char_type char_type)
         decisions.dec_count = 1;
         decisions.dec[0] = DC_ERROR;
         break;
+    default:
+        errorHandle();
+        break;
     }
 }
 
@@ -306,9 +323,11 @@ void handleWordNull(t_char_type char_type)
         decisions.dec[1] = DC_START_OPERATOR;
         break;
     case CHAR_EOF:
-        decisions.dec_count = 2;
-        decisions.dec[0] = DC_TOKEN_END;
-        decisions.dec[1] = DC_END;
+        decisions.dec_count = 1;
+        decisions.dec[0] = DC_END;
+        break;
+    default:
+        errorHandle();
         break;
     }
 }
@@ -346,6 +365,9 @@ void handleTokenNone(t_char_type char_type)
             decisions.dec_count = 1;
             decisions.dec[0] = DC_END;
             break;
+        default:
+            errorHandle();
+            break;
     }
     return;
 }
@@ -365,6 +387,10 @@ void handleTokenWord(t_word_type word_type, t_char_type char_type)
             return;
         case WORD_NULL:
             handleWordNull(char_type);
+            return;
+        default:
+            errorHandle();
+            break;
     }
     return;
 }
@@ -396,7 +422,7 @@ void handleTokenOperator(t_char_type char_type, int input)
         case CHAR_OPERATOR:
         {
             t_operator_type match = CheckTokenMatch(input, lexer->active_token->operator_type);
-            if(match != -1)
+            if(match == OP_NONE)
             {
                 decisions.dec_count = 1;
                 decisions.dec[0] = DC_OPERATOR_CHANGE;
@@ -411,13 +437,16 @@ void handleTokenOperator(t_char_type char_type, int input)
             decisions.dec_count = 1;
             decisions.dec[0] = DC_END;
             break;
+        default:
+            errorHandle();
+            break;
     }
     return;
 }
 
 
 
-void handleInputTypes(t_token_type token_type, t_word_type word_type, t_char_type char_type, int input)
+void handleLexerInputTypes(t_token_type token_type, t_word_type word_type, t_char_type char_type, char *input)
 {
     decisions.dec_count = 0;
     switch (token_type)
@@ -429,35 +458,13 @@ void handleInputTypes(t_token_type token_type, t_word_type word_type, t_char_typ
             handleTokenWord(word_type, char_type);
             return;
         case TOKEN_OPERATOR:
-            handleTokenOperator(char_type, input);
+            handleTokenOperator(char_type, *input);
             return;
     }
     return;
 }
 
 
-t_token_type check_token_type()
-{
-    t_token *token = lexer->active_token;
-    if (token == NULL)
-        return TOKEN_NONE;
-    if (token->type == TOKEN_NONE)
-        return TOKEN_NONE;
-    else if (token->type == TOKEN_WORD)
-        return TOKEN_WORD;
-    else if (token->type == TOKEN_OPERATOR)
-        return TOKEN_OPERATOR;
-    return TOKEN_NONE;
-}
-
-t_word_state check_word_type()
-{
-    t_word *word = lexer->active_word;
-    if (word == NULL)
-        return WORD_NULL;
-    else 
-        return word->type;
-}
 
 t_operator_type change_operator(char input)
 {
@@ -538,7 +545,7 @@ void exec_decision(char input, char *lexer_buffer, size_t i)
             case DC_SKIP:
                 break;
             case DC_END:
-                tokenEnd(lexer_buffer, i);
+                TokenEnd(lexer_buffer, i);
                 break;
             case DC_ERROR:
                 errorHandle();
@@ -548,17 +555,46 @@ void exec_decision(char input, char *lexer_buffer, size_t i)
     
 }
 
-int lex(char *buffer, char *lexer_buffer, Editor *editor)
+void lexer_read(char *input , t_char_type charType)
 {
+    // what i have in my mind is that if there is no active word the function ill allocate a new one if the word ends 
+    // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
+    t_token_type token_type = check_token_type();
+    t_word_type word_type;
+    if (lexer->active_word != NULL)
+        word_type = check_word_type();
+    else
+        word_type = WORD_NULL;
+    
+    if(charType != CHAR_EOF)
+        charType = check_char_type(*input);
+
+    handleLexerInputTypes(token_type, word_type, charType, input);
+    return;
+}
+
+int lex(char *buffer, char *lexer_buffer, size_t length)
+{
+    lexer = malloc(sizeof(t_lexer));
+    if (!lexer)
+        return 1;
+
     lexer->active_token = create_token();
     t_token *first_token;
     first_token = lexer->active_token;
     size_t i = 0;
-    size_t tokenCount = 0;
-
-    while (i < editor->length)
+    t_char_type charType;
+    char input;
+    while (i <= length)
     {   
-        lexer_read(buffer, lexer_buffer, i, lexer->active_token, lexer->active_word, editor.length);
+        if(i >= length)
+            charType = CHAR_EOF;
+        else
+        {
+           charType = CHAR_NULL;
+           input = buffer[i];
+        }
+        lexer_read(&input, charType); // im sending pointer because i could be empty and i dont want to get an error
         exec_decision(input ,lexer_buffer ,i);
         i++;
         // decide token function will return the decision and then i will put a switch case and handle it 
@@ -579,7 +615,6 @@ int lex(char *buffer, char *lexer_buffer, Editor *editor)
         
         */
     }
-
-    free_tokens(first);
+    free_tokens(first_token);
     return 1;
-}"
+}

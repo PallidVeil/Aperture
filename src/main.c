@@ -1,5 +1,6 @@
 #include "common.h"
 #include "editor.h"
+#include "lexer.h"
 
 int ReadInput(char* buffer, Editor *editor)
 {
@@ -13,7 +14,7 @@ int ReadInput(char* buffer, Editor *editor)
     {
         read(STDIN_FILENO, &editor->input, 1);
         type = FindInputType(editor->input);
-        handle = handleInputTypes(buffer, editor, type);
+        handle = handleEditorInputTypes(buffer, editor, type);
     } while(handle != -1);
     DisableRawMode(&editor->orig_termios);
     return 0;
@@ -37,7 +38,7 @@ int main()
             free(buffer);
             break;
         }
-        lexer(buffer ,lexer_buffer, &editor);
+        lex(buffer ,lexer_buffer, editor.length);
         printf("\nYou entered: %s\n", buffer);
 
 
