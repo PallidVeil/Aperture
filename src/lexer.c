@@ -2,6 +2,10 @@
 #include "lexer.h"
 #include "editor.h"
 
+
+t_lexer *lexer;
+i_decision decisions;
+
 /*
  * there is so many things i need to change in lexer
  * first i need to make only two typse for token word and pipe
@@ -88,30 +92,22 @@ t_word *create_word(t_word_type type,size_t start)
     return new;
 }
 
-void end_word(t_word *word, size_t i)
+void end_word(size_t i)
 {
-    word->length = i - word->start;
+    lexer->active_word->length = i - lexer->active_word->start;
     lexer->active_word = lexer->active_word->nextword;
 }
 
-void start_word(t_word *word, t_word_type type, size_t start)
+void start_word(t_word_type type, size_t start)
 {
     if(lexer->active_word == NULL)
         lexer->active_word = create_word(type, start);
 }
 
-void start_token(t_token *token, size_t start)
+void start_token()
 {
     if(lexer->active_token == NULL)
         lexer->active_token = create_token();
-}
-
-void create_new_word(t_word *word, t_word_type type, size_t start)
-{
-    word->nextword = create_word(type, start);
-    if (!word->nextword)
-        return;
-    word = word->nextword;
 }
 
 t_operator_type CheckTokenMatch(int input, t_operator_type LastToken)
@@ -161,11 +157,10 @@ t_char_type check_char_type(int input)
     }
 }
 
-void lexer_read(char *buffer, char *lexer_buffer, size_t i, t_token *token, t_word *word)
+void lexer_read(char *lexer_buffer, size_t i, t_token *token, t_word *word, size_t length)
 {
     // what i have in my mind is that if there is no active word the function ill allocate a new one if the word ends 
     // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
-    int input = fgetc()buffer[*i];
 
     t_token_type token_type = check_token_type();
     t_word_type word_type;
@@ -173,8 +168,13 @@ void lexer_read(char *buffer, char *lexer_buffer, size_t i, t_token *token, t_wo
         word_type = check_word_type();
     else
         word_type = WORD_NULL;
+    if(i >= length)
+    {
+        handleInputTypes(token_type, word_type, CHAR_EOF, input);
+        return;
+    }
+    int input = buffer[i];
     t_char_type char_type = check_char_type(input);
-
     handleInputTypes(token_type, word_type, char_type, input);
     return;
 }
@@ -185,34 +185,34 @@ void handleNormalWord(t_char_type char_type)
     {
     case CHAR_NORMAL:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_WHITESPACE:
         decisions.dec_count = 2;
-        decisions.dec1 = DC_END_NW;
-        decisions.dec2 = DC_NEXT_TOKEN;
+        decisions.dec[0] = DC_END_NW;
+        decisions.dec[1] = DC_NEXT_TOKEN;
         break;
     case CHAR_SINGLE_QUOTE:
         decisions.dec_count = 2;
-        decisions.dec1 = DC_END_NW;
-        decisions.dec2 = DC_START_SQ;
+        decisions.dec[0] = DC_END_NW;
+        decisions.dec[1] = DC_START_SQ;
         break;
     case CHAR_DOUBLE_QUOTE:
         decisions.dec_count = 2;
-        decisions.dec1 = DC_END_NW;
-        decisions.dec2 = DC_START_DQ;
+        decisions.dec[0] = DC_END_NW;
+        decisions.dec[1] = DC_START_DQ;
         break;
     case CHAR_OPERATOR:
         decisions.dec_count = 3;
-        decisions.dec1 = DC_END_NW;
-        decisions.dec2 = DC_NEXT_TOKEN;
-        decisions.dec3 = DC_START_OPERATOR;
+        decisions.dec[0] = DC_END_NW;
+        decisions.dec[1] = DC_NEXT_TOKEN;
+        decisions.dec[2] = DC_START_OPERATOR;
         break;
     case CHAR_EOF:
         decisions.dec_count = 3;
-        decisions.dec1 = DC_END_NW;
-        decisions.dec2 = DC_END_TOKEN;
-        decisions.dec3 = DC_END;
+        decisions.dec[0] = DC_END_NW;
+        decisions.dec[1] = DC_END_TOKEN;
+        decisions.dec[2] = DC_END;
         break;
     }
 }
@@ -223,27 +223,27 @@ void handleSingleQuote(t_char_type char_type)
     {
     case CHAR_NORMAL:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_WHITESPACE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_SINGLE_QUOTE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_END_SQ;
+        decisions.dec[0] = DC_END_SQ;
         break;
     case CHAR_DOUBLE_QUOTE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_OPERATOR:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_EOF:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_ERROR;
+        decisions.dec[0] = DC_ERROR;
         break;
     }
 }
@@ -254,27 +254,27 @@ void handleDoubleQuote(t_char_type char_type)
     {
     case CHAR_NORMAL:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_WHITESPACE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_SINGLE_QUOTE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_DOUBLE_QUOTE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_END_DQ;
+        decisions.dec[0] = DC_END_DQ;
         break;
     case CHAR_OPERATOR:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_APPEND;
+        decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_EOF:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_ERROR;
+        decisions.dec[0] = DC_ERROR;
         break;
     }
 }
@@ -285,30 +285,30 @@ void handleWordNull(t_char_type char_type)
     {
     case CHAR_NORMAL:
         decisions.dec_count = 2;
-        decisions.dec1 = DC_START_NW;
-        decisions.dec2 = DC_APPEND;
+        decisions.dec[0] = DC_START_NW;
+        decisions.dec[1] = DC_APPEND;
         break;
     case CHAR_WHITESPACE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_NEXT_TOKEN;
+        decisions.dec[0] = DC_NEXT_TOKEN;
         break;
     case CHAR_SINGLE_QUOTE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_START_SQ;
+        decisions.dec[0] = DC_START_SQ;
         break;
     case CHAR_DOUBLE_QUOTE:
         decisions.dec_count = 1;
-        decisions.dec1 = DC_START_DQ;
+        decisions.dec[0] = DC_START_DQ;
         break;
     case CHAR_OPERATOR:
         decisions.dec_count = 2;
-        decisions.dec1 = DC_NEXT_TOKEN;
-        decisions.dec2 = DC_START_OPERATOR;
+        decisions.dec[0] = DC_NEXT_TOKEN;
+        decisions.dec[1] = DC_START_OPERATOR;
         break;
     case CHAR_EOF:
         decisions.dec_count = 2;
-        decisions.dec1 = DC_TOKEN_END;
-        decisions.dec2 = DC_END;
+        decisions.dec[0] = DC_TOKEN_END;
+        decisions.dec[1] = DC_END;
         break;
     }
 }
@@ -319,32 +319,32 @@ void handleTokenNone(t_char_type char_type)
     {
         case CHAR_NORMAL:
             decisions.dec_count = 3;
-            decisions.dec1 = DC_START_TOKEN;
-            decisions.dec2 = DC_START_NW;
-            decisions.dec3 = DC_APPEND;
+            decisions.dec[0] = DC_START_TOKEN;
+            decisions.dec[1] = DC_START_NW;
+            decisions.dec[2] = DC_APPEND;
             break;
         case CHAR_WHITESPACE:
             decisions.dec_count = 1;
-            decisions.dec1 = DC_SKIP;
+            decisions.dec[0] = DC_SKIP;
             break;
         case CHAR_SINGLE_QUOTE:
             decisions.dec_count = 2;
-            decisions.dec1 = DC_START_TOKEN;
-            decisions.dec2 = DC_START_SQ;
+            decisions.dec[0] = DC_START_TOKEN;
+            decisions.dec[1] = DC_START_SQ;
             break;
         case CHAR_DOUBLE_QUOTE:
             decisions.dec_count = 2;
-            decisions.dec1 = DC_START_TOKEN;
-            decisions.dec2 = DC_START_DQ;
+            decisions.dec[0] = DC_START_TOKEN;
+            decisions.dec[1] = DC_START_DQ;
             break;
         case CHAR_OPERATOR:
             decisions.dec_count = 2;
-            decisions.dec1 = DC_START_TOKEN;
-            decisions.dec2 = DC_START_OPERATOR;
+            decisions.dec[0] = DC_START_TOKEN;
+            decisions.dec[1] = DC_START_OPERATOR;
             break;
         case CHAR_EOF:
             decisions.dec_count = 1;
-            decisions.dec1 = DC_END;
+            decisions.dec[0] = DC_END;
             break;
     }
     return;
@@ -375,23 +375,23 @@ void handleTokenOperator(t_char_type char_type, int input)
     {
         case CHAR_NORMAL:
             decisions.dec_count = 3;
-            decisions.dec1 = DC_NEXT_TOKEN;
-            decisions.dec2 = DC_START_NW;
-            decisions.dec3 = DC_APPEND;
+            decisions.dec[0] = DC_NEXT_TOKEN;
+            decisions.dec[1] = DC_START_NW;
+            decisions.dec[2] = DC_APPEND;
             break;
         case CHAR_WHITESPACE:
             decisions.dec_count = 1;
-            decisions.dec1 = DC_NEXT_TOKEN;
+            decisions.dec[0] = DC_NEXT_TOKEN;
             break;
         case CHAR_SINGLE_QUOTE:
             decisions.dec_count = 2;
-            decisions.dec1 = DC_NEXT_TOKEN;
-            decisions.dec2 = DC_START_SQ;
+            decisions.dec[0] = DC_NEXT_TOKEN;
+            decisions.dec[1] = DC_START_SQ;
             break;
         case CHAR_DOUBLE_QUOTE:
             decisions.dec_count = 2;
-            decisions.dec1 = DC_NEXT_TOKEN;
-            decisions.dec2 = DC_START_DQ;
+            decisions.dec[0] = DC_NEXT_TOKEN;
+            decisions.dec[1] = DC_START_DQ;
             break;
         case CHAR_OPERATOR:
         {
@@ -399,17 +399,17 @@ void handleTokenOperator(t_char_type char_type, int input)
             if(match != -1)
             {
                 decisions.dec_count = 1;
-                decisions.dec1 = DC_OPERATOR_CHANGE;
+                decisions.dec[0] = DC_OPERATOR_CHANGE;
             } else {
                 decisions.dec_count = 2;
-                decisions.dec1 = DC_NEXT_TOKEN;
-                decisions.dec2 = DC_START_OPERATOR;
+                decisions.dec[0] = DC_NEXT_TOKEN;
+                decisions.dec[1] = DC_START_OPERATOR;
             }
         }
             break;
         case CHAR_EOF:
             decisions.dec_count = 1;
-            decisions.dec1 = DC_END;
+            decisions.dec[0] = DC_END;
             break;
     }
     return;
@@ -459,120 +459,93 @@ t_word_state check_word_type()
         return word->type;
 }
 
-void exec_decision(input_decision decision, int input, char *lexer_buffer, size_t *i)
+t_operator_type change_operator(char input)
 {
-    switch (decision)
+    switch (input)
     {
-        case DE_SKIP:
-            break;
-        case DE_APPEND:
-            TokenAppend(lexer_buffer, input, *i);
-            break;
-        case DE_TOKEN_START:
-            TokenStartWord(*i, lexer->active_token);
-            break;
-        case DE_TOKEN_END:
-            TokenEnd(lexer_buffer, *i);
-            break;
-        case DE_WORD_START:
-            start_word(lexer->active_word, WORD_NORMAL, *i);
-            switch (input)
-            {
-                case '"':
-                    lexer->active_word->type = WORD_DOUBLE_QUOTE;
-                    break;
-                case '\'':
-                    lexer->active_word->type = WORD_SINGLE_QUOTE;
-                    break;
-                default:
-                    lexer->active_word->type = WORD_NORMAL;
-                    TokenAppend(lexer_buffer, input, *i);
-                    break;
-            }
-            break;
-        case DE_WORD_END:
-            end_word(lexer->active_word, *i);
-            break;
-        case DE_WORD_END_WORD_START:
-            end_word(lexer->active_word, *i);
-            start_word(lexer->active_word, WORD_NORMAL, *i);
-            switch (input)
-            {
-                case '"':
-                    lexer->active_word->type = WORD_DOUBLE_QUOTE;
-                    break;
-                case '\'':
-                    lexer->active_word->type = WORD_SINGLE_QUOTE;
-                    break;
-                default:
-                    lexer->active_word->type = WORD_NORMAL;
-                    TokenAppend(lexer_buffer, input, *i);
-                    break;
-            }
-            break;
-        case DE_WORD_END_TOKEN_START:
-            end_word(lexer->active_word, *i);
-            lexer->active_token = create_token();
-            lexer->active_word = NULL;
-            break;
-        case DE_TOKEN_END_OP_START:
-            if(lexer->active_word != NULL)
-                end_word(lexer->active_word, *i);
-            TokenEnd(lexer_buffer, *i);
-            TokenStartOperator(input, lexer->active_token);
-            break;
-        case DE_OP_START:
-            TokenStartOperator(input, lexer->active_token);
-            break;
-        case DE_OP_END:
-            TokenEnd(lexer_buffer, *i);
-            break;
-        case DE_OP_CHANGEHANDLE:
-            t_operator_type new_op_type = CheckTokenMatch(input, lexer->active_token->operator_type);
-            if (new_op_type != -1)
-                lexer->active_token->operator_type = new_op_type;
-            else
-            {
-                TokenEnd(lexer_buffer, *i);
-                lexer->active_token = create_token();
-                switch (input)
-                {
-                    case '|':
-                        lexer->active_token->operator_type = OP_PIPE;
-                        break;
-                    case '&':
-                        lexer->active_token->operator_type = OP_BACKGROUND;
-                        break;
-                    case '<':
-                        lexer->active_token->operator_type = OP_REDIR_IN;
-                        break;
-                    case '>':
-                        lexer->active_token->operator_type = OP_REDIR_OUT;
-                        break;
-                }
-            }
-            break;
-        case DE_OP_END_WORD_START:
-            TokenEnd(lexer_buffer, *i);
-            lexer->active_token = create_token();
-            start_word(lexer->active_word, WORD_NORMAL, *i);
-            switch (input)
-            {
-                case '"':
-                    lexer->active_word->type = WORD_DOUBLE_QUOTE;
-                    break;
-                case '\'':  
-                    lexer->active_word->type = WORD_SINGLE_QUOTE;
-                    break;
-                default:
-                    lexer->active_word->type = WORD_NORMAL;
-                    TokenAppend(lexer_buffer, input, *i);
-                    break;
-            }
+        case '|':
+            return OP_OR;
+        case '&':
+            return OP_AND;
+        case '<':
+            return OP_REDIR_IN;
+        case '>':
+            return OP_REDIR_OUT;
         default:
-            // error handling
-            break;
+            return OP_NONE;
     }
+}
+
+t_operator_type find_operator(char input)
+{
+    switch (input)
+    {
+        case '|':
+            return OP_PIPE;
+        case '<':
+            return OP_REDIR_IN;
+        case '>':
+            return OP_REDIR_OUT;
+        default:
+            return OP_NONE;
+    }
+}
+
+void exec_decision(char input, char *lexer_buffer, size_t i)
+{
+    for(int j = 0;j < decisions.dec_count; j++)
+    {
+        switch (decisions.dec[j])
+        {
+            case DC_START_NW:
+                start_word(WORD_NORMAL,i);
+                break;
+            case DC_END_NW:
+                end_word(i);
+                break;
+
+            case DC_START_SQ:
+                start_word(WORD_SINGLE_QUOTE,i);
+                break;
+            case DC_END_SQ:
+                end_word(i);
+                break;
+
+            case DC_START_DQ:
+                start_word(WORD_DOUBLE_QUOTE,i);
+                break;
+            case DC_END_DQ:
+                end_word(i);
+                break;
+
+            case DC_START_OPERATOR:
+                start_token();
+                lexer->active_token->operator_type = find_operator(input);
+                break;
+            case DC_OPERATOR_CHANGE:
+                lexer->active_token->operator_type = change_operator(input);
+                break;
+
+            case DC_START_TOKEN:
+                start_token();
+                break;
+            case DC_NEXT_TOKEN:
+                lexer->active_token = lexer->active_token->next;
+                break;
+            case DC_APPEND:
+                TokenAppend(lexer_buffer, input, i);
+                break;
+            case DC_SKIP:
+                break;
+            case DC_END:
+                tokenEnd(lexer_buffer, i);
+                break;
+            case DC_ERROR:
+                errorHandle();
+                break;
+        }
+    }
+    
 }
 
 int lex(char *buffer, char *lexer_buffer, Editor *editor)
@@ -585,10 +558,9 @@ int lex(char *buffer, char *lexer_buffer, Editor *editor)
 
     while (i < editor->length)
     {   
-
+        lexer_read(buffer, lexer_buffer, i, lexer->active_token, lexer->active_word, editor.length);
+        exec_decision(input ,lexer_buffer ,i);
         i++;
-        lexer_read(buffer, lexer_buffer, i, lexer->active_token, lexer->active_word);
-
         // decide token function will return the decision and then i will put a switch case and handle it 
         // its starting to get complicated so much
 
@@ -610,4 +582,4 @@ int lex(char *buffer, char *lexer_buffer, Editor *editor)
 
     free_tokens(first);
     return 1;
-}
+}"

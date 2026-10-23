@@ -1,9 +1,11 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#include <stddef.h>
+
 typedef enum e_lexer_decision
 {
-    DC_START_NW,// START MEANS ALLOCATE it will allocate token if needed to, and it will also append it 
+    DC_START_NW,// START MEANS ALLOCATE it 
     DC_END_NW,// NW MEANS NORMAL WORD 
 
     DC_START_SQ,// SQ MEANS SINGLE QUOTE
@@ -87,12 +89,7 @@ typedef struct s_lexer
 typedef struct s_decision
 {
     int dec_count;
-    input_decision dec1;
-    input_decision dec2;
-    input_decision dec3;
-    input_decision dec4;
+    input_decision dec[3];
 } i_decision;
 
-t_lexer *lexer;
-i_decision decisions;
 #endif
