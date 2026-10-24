@@ -17,7 +17,7 @@ typedef enum e_lexer_decision
     DC_START_OPERATOR,
     DC_OPERATOR_CHANGE,
 
-    DC_START_TOKEN,
+    DC_START_TOKEN_WORD,
     DC_NEXT_TOKEN,
     DC_APPEND,
     DC_SKIP,

@@ -107,15 +107,19 @@ void start_word(t_word_type type, size_t start)
     lexer->active_token->word = lexer->active_word;
 }
 
-void start_token(t_token_type type)
+void start_token()
 {
     if(lexer->active_token != NULL)
         return;
     lexer->active_token = create_token();
-    lexer->active_token->type = type;
     lexer->active_word = lexer->active_token->word;
 }
 
+void change_token_type(t_token_type type)
+{
+    lexer->active_token->type = type;
+    return;
+}
 
 void errorHandle()
 {
@@ -344,7 +348,7 @@ void handleTokenNone(t_char_type char_type)
     {
         case CHAR_NORMAL:
             decisions.dec_count = 3;
-            decisions.dec[0] = DC_START_TOKEN;
+            decisions.dec[0] = DC_START_TOKEN_WORD;
             decisions.dec[1] = DC_START_NW;
             decisions.dec[2] = DC_APPEND;
             break;
@@ -354,12 +358,12 @@ void handleTokenNone(t_char_type char_type)
             break;
         case CHAR_SINGLE_QUOTE:
             decisions.dec_count = 2;
-            decisions.dec[0] = DC_START_TOKEN;
+            decisions.dec[0] = DC_START_TOKEN_WORD;
             decisions.dec[1] = DC_START_SQ;
             break;
         case CHAR_DOUBLE_QUOTE:
             decisions.dec_count = 2;
-            decisions.dec[0] = DC_START_TOKEN;
+            decisions.dec[0] = DC_START_TOKEN_WORD;
             decisions.dec[1] = DC_START_DQ;
             break;
         case CHAR_OPERATOR:
@@ -534,18 +538,19 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
                 break;
 
             case DC_START_OPERATOR:
-                start_token(TOKEN_OPERATOR);
+                change_token_type(TOKEN_WORD);
                 lexer->active_token->operator_type = find_operator(input);
                 break;
             case DC_OPERATOR_CHANGE:
                 lexer->active_token->operator_type = change_operator(input);
                 break;
 
-            case DC_START_TOKEN:
-                start_token(TOKEN_WORD);
+            case DC_START_TOKEN_WORD:
+                change_token_type(TOKEN_WORD);
                 break;
             case DC_NEXT_TOKEN:
                 lexer->active_token = lexer->active_token->next;
+                start_token();
                 break;
             case DC_APPEND:
                 TokenAppend(lexer_buffer, input, *lexerindex);
