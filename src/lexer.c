@@ -61,9 +61,16 @@ void TokenAppend(char *t_buffer, int input, size_t i)
     t_buffer[i] = input;
 }
 
-void TokenEnd()
+void TokenEnd(void)
 {
-    lexer->active_token = lexer->active_token->next;
+    if (lexer->active_token != NULL
+        && *lexer->active_token != NULL
+        && (*lexer->active_token)->type == TOKEN_NONE)
+    {
+        free(*lexer->active_token);
+        *lexer->active_token = NULL;
+    }
+    lexer->active_token = NULL;
     lexer->active_word = NULL;
 }
 
@@ -91,33 +98,62 @@ t_word *create_word(t_word_type type,size_t start)
     return new;
 }
 
-void end_word(char *t_buffer,size_t i)
+t_word **getLastWord()
+{
+    t_word **word;
+
+    word = &token->active_token->word;
+    while (*word != NULL)
+        word = &(*word)->nextword;
+    return word;
+}
+
+void end_word(char *t_buffer, size_t i)
 {
     t_buffer[i] = '\0';
-    lexer->active_word->length = i - lexer->active_word->start;
-    lexer->active_word = lexer->active_word->nextword;
-    
+    (*lexer->active_word)->length =
+        i - (*lexer->active_word)->start;
+
+    lexer->active_word =
+        &(*lexer->active_word)->nextword;
 }
 
 void start_word(t_word_type type, size_t start)
 {
-    if(lexer->active_word != NULL)
-        return;
-    lexer->active_word = create_word(type, start);
-    lexer->active_token->word = lexer->active_word;
+    t_word **word;
+
+    word = getLastWord();
+    *word = create_word(type, start);
+    lexer->active_word = *word;
 }
 
-void start_token()
+void start_token(void)
 {
-    if(lexer->active_token != NULL)
+    if (lexer->active_token == NULL)
         return;
-    lexer->active_token = create_token();
-    lexer->active_word = lexer->active_token->word;
+
+    if (*lexer->active_token != NULL)
+        return;
+
+    *lexer->active_token = create_token();
+    lexer->active_word = &(*lexer->active_token)->word;
+}
+
+void advance_token(void)
+{
+    if (lexer->active_token == NULL
+        || *lexer->active_token == NULL)
+        return;
+
+    lexer->active_token = &(*lexer->active_token)->next;
+    lexer->active_word = NULL;
+
+    start_token();
 }
 
 void change_token_type(t_token_type type)
 {
-    lexer->active_token->type = type;
+    (*lexer->active_token)->type = type;
     return;
 }
 
@@ -174,18 +210,18 @@ t_char_type check_char_type(char input)
     }
 }
 
-t_token_type check_token_type()
+t_token_type check_token_type(void)
 {
-    t_token *token = lexer->active_token;
+    t_token *token;
+
+    if (lexer->active_token == NULL)
+        return TOKEN_NONE;
+
+    token = *lexer->active_token;
     if (token == NULL)
         return TOKEN_NONE;
-    if (token->type == TOKEN_NONE)
-        return TOKEN_NONE;
-    else if (token->type == TOKEN_WORD)
-        return TOKEN_WORD;
-    else if (token->type == TOKEN_OPERATOR)
-        return TOKEN_OPERATOR;
-    return TOKEN_NONE;
+
+    return token->type;
 }
 
 t_word_type check_word_type()
@@ -430,18 +466,27 @@ void handleTokenOperator(t_char_type char_type, int input)
             break;
         case CHAR_OPERATOR:
         {
-            t_operator_type match = CheckTokenMatch(input, lexer->active_token->operator_type);
-            if(match == OP_NONE)
+            if (lexer->active_token == NULL
+                || *lexer->active_token == NULL)
+            {
+                errorHandle();
+                break;
+            }
+
+            t_operator_type match = CheckTokenMatch(input, (*lexer->active_token)->operator_type);
+            if (match == OP_NONE)
             {
                 decisions.dec_count = 1;
                 decisions.dec[0] = DC_OPERATOR_CHANGE;
-            } else {
+            }
+            else
+            {
                 decisions.dec_count = 2;
                 decisions.dec[0] = DC_NEXT_TOKEN;
                 decisions.dec[1] = DC_START_OPERATOR;
             }
-        }
             break;
+        }
         case CHAR_EOF:
             decisions.dec_count = 1;
             decisions.dec[0] = DC_END;
@@ -538,19 +583,27 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
                 break;
 
             case DC_START_OPERATOR:
-                change_token_type(TOKEN_WORD);
-                lexer->active_token->operator_type = find_operator(input);
+                if (lexer->active_token == NULL)
+                    break;
+                if (*lexer->active_token == NULL)
+                    start_token();
+                if (*lexer->active_token != NULL)
+                    (*lexer->active_token)->operator_type = find_operator(input);
                 break;
             case DC_OPERATOR_CHANGE:
-                lexer->active_token->operator_type = change_operator(input);
+            if (lexer->active_token == NULL)
+                    break;
+                if (*lexer->active_token == NULL)
+                    errorHandle();
+                if (*lexer->active_token != NULL)
+                    (*lexer->active_token)->operator_type = change_operator(input);
                 break;
 
             case DC_START_TOKEN_WORD:
                 change_token_type(TOKEN_WORD);
                 break;
             case DC_NEXT_TOKEN:
-                lexer->active_token = lexer->active_token->next;
-                start_token();
+                advance_token();
                 break;
             case DC_APPEND:
                 TokenAppend(lexer_buffer, input, *lexerindex);
@@ -658,15 +711,16 @@ int lex(char *buffer, char *lexer_buffer, size_t length)
     if (!lexer)
         return 1;
 
-    lexer->active_token = create_token();
+    t_token *first_token = NULL;
+    lexer->active_token = &first_token;
+    *lexer->active_token = create_token();
 
 printf("AFTER CREATE:\n");
 printf("token: %p\n", (void *)lexer->active_token);
 printf("type: %d\n", lexer->active_token->type);
 printf("word: %p\n", (void *)lexer->active_token->word);
 printf("next: %p\n", (void *)lexer->active_token->next);
-    t_token *first_token;
-    first_token = lexer->active_token;
+    
     size_t bufferindex = 0;
     size_t lexerindex = 0;
     t_char_type charType;
