@@ -6,6 +6,11 @@
 t_lexer *lexer = NULL;
 i_decision decisions;
 
+void errorHandle()
+{
+    
+}
+
 /*
  * there is so many things i need to change in lexer
  * first i need to make only two typse for token word and pipe
@@ -102,7 +107,7 @@ t_word **getLastWord()
 {
     t_word **word;
 
-    word = &token->active_token->word;
+    word = &(*lexer->active_token)->word;
     while (*word != NULL)
         word = &(*word)->nextword;
     return word;
@@ -124,7 +129,7 @@ void start_word(t_word_type type, size_t start)
 
     word = getLastWord();
     *word = create_word(type, start);
-    lexer->active_word = *word;
+    lexer->active_word = word;
 }
 
 void start_token(void)
@@ -136,7 +141,10 @@ void start_token(void)
         return;
 
     *lexer->active_token = create_token();
-    lexer->active_word = &(*lexer->active_token)->word;
+    if(*lexer->active_token == NULL)
+        errorHandle();
+    else
+        lexer->active_word = &(*lexer->active_token)->word;
 }
 
 void advance_token(void)
@@ -155,11 +163,6 @@ void change_token_type(t_token_type type)
 {
     (*lexer->active_token)->type = type;
     return;
-}
-
-void errorHandle()
-{
-
 }
 
 
@@ -226,11 +229,11 @@ t_token_type check_token_type(void)
 
 t_word_type check_word_type()
 {
-    t_word *word = lexer->active_word;
-    if (word == NULL)
+    if (lexer == NULL || lexer->active_word == NULL ||
+        *lexer->active_word == NULL)
         return WORD_NULL;
-    else 
-        return word->type;
+
+    return (*lexer->active_word)->type;
 }
 
 void handleNormalWord(t_char_type char_type)
@@ -474,7 +477,7 @@ void handleTokenOperator(t_char_type char_type, int input)
             }
 
             t_operator_type match = CheckTokenMatch(input, (*lexer->active_token)->operator_type);
-            if (match == OP_NONE)
+            if (match != OP_NONE)
             {
                 decisions.dec_count = 1;
                 decisions.dec[0] = DC_OPERATOR_CHANGE;
@@ -559,6 +562,7 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
         switch (decisions.dec[j])
         {
             case DC_START_NW:
+                (*lexer->active_token)->type = TOKEN_WORD;
                 start_word(WORD_NORMAL,*lexerindex);
                 break;
             case DC_END_NW:
@@ -567,6 +571,7 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
                 break;
 
             case DC_START_SQ:
+                (*lexer->active_token)->type = TOKEN_WORD;
                 start_word(WORD_SINGLE_QUOTE,*lexerindex);
                 break;
             case DC_END_SQ:
@@ -575,6 +580,7 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
                 break;
 
             case DC_START_DQ:
+                (*lexer->active_token)->type = TOKEN_WORD;
                 start_word(WORD_DOUBLE_QUOTE,*lexerindex);
                 break;
             case DC_END_DQ:
@@ -588,7 +594,10 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
                 if (*lexer->active_token == NULL)
                     start_token();
                 if (*lexer->active_token != NULL)
+                {
                     (*lexer->active_token)->operator_type = find_operator(input);
+                    (*lexer->active_token)->type = TOKEN_OPERATOR;
+                }
                 break;
             case DC_OPERATOR_CHANGE:
             if (lexer->active_token == NULL)
@@ -714,13 +723,13 @@ int lex(char *buffer, char *lexer_buffer, size_t length)
     t_token *first_token = NULL;
     lexer->active_token = &first_token;
     *lexer->active_token = create_token();
+    if(*lexer->active_token == NULL)
+    {
+        errorHandle();
+        return 0;
+    }
+    lexer->active_word = &(*lexer->active_token)->word;
 
-printf("AFTER CREATE:\n");
-printf("token: %p\n", (void *)lexer->active_token);
-printf("type: %d\n", lexer->active_token->type);
-printf("word: %p\n", (void *)lexer->active_token->word);
-printf("next: %p\n", (void *)lexer->active_token->next);
-    
     size_t bufferindex = 0;
     size_t lexerindex = 0;
     t_char_type charType;
@@ -755,13 +764,6 @@ printf("next: %p\n", (void *)lexer->active_token->next);
         
         */
     }
-    printf("BEFORE PRINT:\n");
-    printf("first_token: %p\n", (void *)first_token);
-    printf("type: %d\n", first_token->type);
-    printf("word: %p\n", (void *)first_token->word);
-    printf("next: %p\n", (void *)first_token->next);
-    printf("lexerindex: %ld",lexerindex );
-    print_tokens(first_token, lexer_buffer);
     debug_tokens(first_token);
     free_tokens(first_token);
     return 1;
