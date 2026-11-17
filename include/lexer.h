@@ -64,22 +64,21 @@ typedef enum e_operator_type
     OP_NONE
 } t_operator_type;
 
-
-typedef struct s_word
-{
-    size_t          start;
-    size_t          length;
-    t_word_type     type;
-    struct s_word   *nextword;
-}   t_word;
-
 typedef struct s_token
 {
-    t_token_type    type;
-    t_word          *word;
-    t_operator_type operator_type;
-    struct s_token  *next;
-} t_token;
+    t_token_type    token_type;
+    union
+    {
+        struct
+        {
+            size_t      start;
+            size_t      length;
+            t_word_type word_type;
+        };
+        t_operator_type operator_type;
+    };
+    struct s_token   *next;
+}   t_token;
 
 typedef struct s_lexer
 {

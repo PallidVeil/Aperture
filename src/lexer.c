@@ -31,19 +31,7 @@ void errorHandle()
  * i will try to make the struct on this commit and will change the lexer in the other commits 
 */
 
-void free_words(t_word *first)
-{
-    t_word *curr;
-    t_word *next;
 
-    curr = first;
-    while (curr)
-    {
-        next = curr->nextword;
-        free(curr);
-        curr = next;
-    }
-}
 
 void free_tokens(t_token *first)
 {
@@ -53,8 +41,6 @@ void free_tokens(t_token *first)
     curr = first;
     while (curr)
     {
-        free_words(curr->word);
-
         next = curr->next;
         free(curr);
         curr = next;
