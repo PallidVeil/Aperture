@@ -67,6 +67,7 @@ typedef enum e_operator_type
 typedef struct s_token
 {
     t_token_type    token_type;
+    bool            word_active;
     union
     {
         struct

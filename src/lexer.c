@@ -72,6 +72,7 @@ t_token *create_token()
     new->type = TOKEN_NONE;
     new->word = NULL;
     new->operator_type = OP_NONE;
+    new->word_active = false;
     new->next = NULL;
     return new;
 }
@@ -98,12 +99,12 @@ t_word **getLastWord()
     return word;
 }
 
-void end_word(char *t_buffer, size_t i)
+void end_word(char *t_buffer)
 {
     active_token->word_type = WORD_NULL;
 }
 
-void start_word(t_word_type type, size_t start)
+void start_word(t_word_type type)
 {
     active_word = word;
 }
@@ -136,7 +137,10 @@ void change_token_type(t_token_type type)
 {
     (*active_token)->type = type;
     if (type == TOKEN_WORD)
+    {
+        (*active_token)->word_active = true;
         (*active_token)->word_type = WORD_NULL;
+    }
     else if (type == TOKEN_OPERATOR)
         (*active_token)->operator_type = OP_NONE;
     else
@@ -371,14 +375,16 @@ void handleTokenNone(t_char_type char_type)
             decisions.dec[0] = DC_SKIP;
             break;
         case CHAR_SINGLE_QUOTE:
-            decisions.dec_count = 2;
+            decisions.dec_count = 3;
             decisions.dec[0] = DC_START_TOKEN_WORD;
             decisions.dec[1] = DC_START_SQ;
+            decisions.dec[2] = DC_APPEND;
             break;
         case CHAR_DOUBLE_QUOTE:
-            decisions.dec_count = 2;
+            decisions.dec_count = 3;
             decisions.dec[0] = DC_START_TOKEN_WORD;
             decisions.dec[1] = DC_START_DQ;
+            decisions.dec[2] = DC_APPEND;
             break;
         case CHAR_OPERATOR:
             decisions.dec_count = 1;
@@ -537,29 +543,27 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
         switch (decisions.dec[j])
         {
             case DC_START_NW:
-                (*active_token)->type = TOKEN_WORD;
-                start_word(WORD_NORMAL,*lexerindex);
+                start_word(WORD_NORMAL);
                 break;
             case DC_END_NW:
-                end_word(lexer_buffer,*lexerindex);
+                end_word(lexer_buffer);
                 (*lexerindex)++;
                 break;
 
             case DC_START_SQ:
-                (*active_token)->type = TOKEN_WORD;
-                start_word(WORD_SINGLE_QUOTE,*lexerindex);
+                start_word(WORD_SINGLE_QUOTE);
                 break;
             case DC_END_SQ:
-                end_word(lexer_buffer,*lexerindex);
+                end_word(lexer_buffer);
                 (*lexerindex)++;
                 break;
 
             case DC_START_DQ:
                 (*active_token)->type = TOKEN_WORD;
-                start_word(WORD_DOUBLE_QUOTE,*lexerindex);
+                start_word(WORD_DOUBLE_QUOTE);
                 break;
             case DC_END_DQ:
-                end_word(lexer_buffer,*lexerindex);
+                end_word(lexer_buffer);
                 (*lexerindex)++;
                 break;
 
@@ -585,8 +589,11 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
 
             case DC_START_TOKEN_WORD:
                 change_token_type(TOKEN_WORD);
+                (*active_token)->start = *lexerindex;
                 break;
             case DC_NEXT_TOKEN:
+                if (active_token == TOKEN_WORD)
+                    length = *lexerindex - (*active_token)->start;
                 advance_token();
                 break;
             case DC_APPEND:
@@ -612,7 +619,7 @@ void lexer_read(char *input , t_char_type charType)
     // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
     t_token_type token_type = check_token_type();
     t_word_type word_type;
-    if (active_token->word_type != WORD_NULL)
+    if (active_token->word_active)
         word_type = check_word_type();
     else
         word_type = WORD_NULL;
