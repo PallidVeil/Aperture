@@ -5,8 +5,8 @@
 
 typedef enum e_lexer_decision
 {
-    DC_START_WORD
-    DC_END_WORD
+    DC_START_WORD,
+    DC_END_WORD,
 
     DC_START_OPERATOR,
     DC_OPERATOR_CHANGE,

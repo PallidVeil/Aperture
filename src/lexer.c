@@ -56,7 +56,7 @@ void TokenEnd(void)
 {
     if (active_token != NULL
         && *active_token != NULL
-        && (*active_token)->type == TOKEN_NONE)
+        && (*active_token)->token_type == TOKEN_NONE)
     {
         free(*active_token);
         *active_token = NULL;
@@ -69,44 +69,21 @@ t_token *create_token()
     t_token *new = malloc(sizeof(t_token));
     if (!new)
         return NULL;
-    new->type = TOKEN_NONE;
-    new->word = NULL;
+    new->token_type = TOKEN_NONE;
     new->operator_type = OP_NONE;
     new->word_active = false;
     new->next = NULL;
     return new;
 }
 
-t_word *create_word(t_word_type type,size_t start)
-{
-    t_word *new = malloc(sizeof(t_word));
-    if (!new)
-        return NULL;
-    new->start = start;
-    new->length = 0;
-    new->type = type;
-    new->nextword = NULL;
-    return new;
-}
-
-t_word **getLastWord()
-{
-    t_word **word;
-
-    word = &(*active_token)->quote_state;
-    while (*word != NULL)
-        word = &(*word)->nextword;
-    return word;
-}
-
 void end_word()
 {
-    active_token->quote_state = WORD_NULL;
+    (*active_token)->quote_state = WORD_NULL;
 }
 
 void start_word(t_word_type type)
 {
-    active_word = word;
+    (*active_token)->quote_state = type;
 }
 
 void start_token(void)
@@ -135,7 +112,7 @@ void advance_token(void)
 
 void change_token_type(t_token_type type)
 {
-    (*active_token)->type = type;
+    (*active_token)->token_type = type;
     if (type == TOKEN_WORD)
     {
         (*active_token)->word_active = true;
@@ -207,12 +184,12 @@ t_token_type check_token_type(void)
     if (token == NULL)
         return TOKEN_NONE;
 
-    return token->type;
+    return token->token_type;
 }
 
 t_word_type check_quote_state()
 {
-    return *active_token->quote_state;
+    return (*active_token)->quote_state;
 }
 
 void handleNormalWord(t_char_type char_type)
@@ -568,7 +545,7 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
                 if (*active_token != NULL)
                 {
                     (*active_token)->operator_type = find_operator(input);
-                    (*active_token)->type = TOKEN_OPERATOR;
+                    (*active_token)->token_type = TOKEN_OPERATOR;
                 }
                 break;
             case DC_OPERATOR_CHANGE:
@@ -585,8 +562,8 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
                 (*active_token)->start = *lexerindex;
                 break;
             case DC_NEXT_TOKEN:
-                if (active_token == TOKEN_WORD)
-                    length = *lexerindex - (*active_token)->start;
+                if ((*active_token)->token_type == TOKEN_WORD)
+                    (*active_token)->length = *lexerindex - (*active_token)->start;
                 advance_token();
                 break;
             case DC_APPEND:
@@ -612,7 +589,7 @@ void lexer_read(char *input , t_char_type charType)
     // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
     t_token_type token_type = check_token_type();
     t_word_type quote_state;
-    if (active_token->word_active)
+    if ((*(active_token))->word_active)
         quote_state = check_quote_state();
     else
         quote_state = WORD_NULL;
@@ -624,37 +601,6 @@ void lexer_read(char *input , t_char_type charType)
     return;
 }
 
-
-void print_tokens(t_token *token, const char *lexer_buffer)
-{
-    
-    int token_index = 0;
-
-    while (token != NULL)
-    {
-        printf("\n========== TOKEN %d ==========\n", token_index);
-        printf("Token type: %d\n", token->type);
-
-        t_word *word = token->word;
-        int word_index = 0;
-
-        while (word != NULL)
-        {
-            printf("  Word %d: ", word_index);
-
-            printf("%.*s\n",
-                (int)word->length,
-                lexer_buffer + word->start);
-
-            word = word->nextword;
-            word_index++;
-        }
-
-        token = token->next;
-        token_index++;
-    }
-}
-
 void debug_tokens(t_token *token)
 {
     int ti = 0;
@@ -663,24 +609,8 @@ void debug_tokens(t_token *token)
     {
         printf("\n===== TOKEN %d =====\n", ti);
         printf("token address: %p\n", (void *)token);
-        printf("token type: %d\n", token->type);
-        printf("token->word: %p\n", (void *)token->word);
+        printf("token type: %d\n", token->token_type);
         printf("token->next: %p\n", (void *)token->next);
-
-        t_word *word = token->word;
-        int wi = 0;
-
-        while (word != NULL)
-        {
-            printf("  --- WORD %d ---\n", wi);
-            printf("  word address: %p\n", (void *)word);
-            printf("  start: %zu\n", word->start);
-            printf("  length: %zu\n", word->length);
-            printf("  nextword: %p\n", (void *)word->nextword);
-
-            word = word->nextword;
-            wi++;
-        }
 
         token = token->next;
         ti++;
@@ -691,10 +621,6 @@ void debug_tokens(t_token *token)
 
 int lex(char *buffer, char *lexer_buffer, size_t length)
 {
-    lexer = malloc(sizeof(t_lexer));
-    if (!lexer)
-        return 1;
-
     t_token *first_token = NULL;
     active_token = &first_token;
     *active_token = create_token();
