@@ -549,12 +549,12 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
                 }
                 break;
             case DC_OPERATOR_CHANGE:
-            if (active_token == NULL)
+                if (active_token == NULL)
                     break;
                 if (*active_token == NULL)
                     errorHandle();
                 if (*active_token != NULL)
-                    (*active_token)->operator_type = change_operator(input);
+                    (*active_token)->operator_type = CheckTokenMatch(input, (*active_token)->operator_type);
                 break;
 
             case DC_START_TOKEN_WORD:
