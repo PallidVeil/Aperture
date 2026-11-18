@@ -99,7 +99,7 @@ t_word **getLastWord()
     return word;
 }
 
-void end_word(char *t_buffer)
+void end_word()
 {
     active_token->quote_state = WORD_NULL;
 }
@@ -225,28 +225,28 @@ void handleNormalWord(t_char_type char_type)
         break;
     case CHAR_WHITESPACE:
         decisions.dec_count = 2;
-        decisions.dec[0] = DC_END_NW;
+        decisions.dec[0] = DC_END_WORD;
         decisions.dec[1] = DC_NEXT_TOKEN;
         break;
     case CHAR_SINGLE_QUOTE:
         decisions.dec_count = 2;
-        decisions.dec[0] = DC_END_NW;
-        decisions.dec[1] = DC_START_SQ;
+        decisions.dec[0] = DC_END_WORD;
+        decisions.dec[1] = DC_START_WORD;
         break;
     case CHAR_DOUBLE_QUOTE:
         decisions.dec_count = 2;
-        decisions.dec[0] = DC_END_NW;
-        decisions.dec[1] = DC_START_DQ;
+        decisions.dec[0] = DC_END_WORD;
+        decisions.dec[1] = DC_START_WORD;
         break;
     case CHAR_OPERATOR:
         decisions.dec_count = 3;
-        decisions.dec[0] = DC_END_NW;
+        decisions.dec[0] = DC_END_WORD;
         decisions.dec[1] = DC_NEXT_TOKEN;
         decisions.dec[2] = DC_START_OPERATOR;
         break;
     case CHAR_EOF:
         decisions.dec_count = 3;
-        decisions.dec[0] = DC_END_NW;
+        decisions.dec[0] = DC_END_WORD;
         decisions.dec[1] = DC_NEXT_TOKEN;
         decisions.dec[2] = DC_END;
         break;
@@ -269,8 +269,9 @@ void handleSingleQuote(t_char_type char_type)
         decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_SINGLE_QUOTE:
-        decisions.dec_count = 1;
-        decisions.dec[0] = DC_END_SQ;
+        decisions.dec_count = 2;
+        decisions.dec[0] = DC_APPEND;
+        decisions.dec[1] = DC_END_WORD;
         break;
     case CHAR_DOUBLE_QUOTE:
         decisions.dec_count = 1;
@@ -307,8 +308,9 @@ void handleDoubleQuote(t_char_type char_type)
         decisions.dec[0] = DC_APPEND;
         break;
     case CHAR_DOUBLE_QUOTE:
-        decisions.dec_count = 1;
-        decisions.dec[0] = DC_END_DQ;
+        decisions.dec_count = 2;
+        decisions.dec[0] = DC_APPEND;
+        decisions.dec[1] = DC_END_WORD;
         break;
     case CHAR_OPERATOR:
         decisions.dec_count = 1;
@@ -330,7 +332,7 @@ void handleWordNull(t_char_type char_type)
     {
     case CHAR_NORMAL:
         decisions.dec_count = 2;
-        decisions.dec[0] = DC_START_NW;
+        decisions.dec[0] = DC_START_WORD;
         decisions.dec[1] = DC_APPEND;
         break;
     case CHAR_WHITESPACE:
@@ -338,12 +340,14 @@ void handleWordNull(t_char_type char_type)
         decisions.dec[0] = DC_NEXT_TOKEN;
         break;
     case CHAR_SINGLE_QUOTE:
-        decisions.dec_count = 1;
-        decisions.dec[0] = DC_START_SQ;
+        decisions.dec_count = 2;
+        decisions.dec[0] = DC_APPEND;
+        decisions.dec[1] = DC_START_WORD;
         break;
     case CHAR_DOUBLE_QUOTE:
-        decisions.dec_count = 1;
-        decisions.dec[0] = DC_START_DQ;
+        decisions.dec_count = 2;
+        decisions.dec[0] = DC_APPEND;
+        decisions.dec[1] = DC_START_WORD;
         break;
     case CHAR_OPERATOR:
         decisions.dec_count = 2;
@@ -367,7 +371,7 @@ void handleTokenNone(t_char_type char_type)
         case CHAR_NORMAL:
             decisions.dec_count = 3;
             decisions.dec[0] = DC_START_TOKEN_WORD;
-            decisions.dec[1] = DC_START_NW;
+            decisions.dec[1] = DC_START_WORD;
             decisions.dec[2] = DC_APPEND;
             break;
         case CHAR_WHITESPACE:
@@ -377,13 +381,13 @@ void handleTokenNone(t_char_type char_type)
         case CHAR_SINGLE_QUOTE:
             decisions.dec_count = 3;
             decisions.dec[0] = DC_START_TOKEN_WORD;
-            decisions.dec[1] = DC_START_SQ;
+            decisions.dec[1] = DC_START_WORD;
             decisions.dec[2] = DC_APPEND;
             break;
         case CHAR_DOUBLE_QUOTE:
             decisions.dec_count = 3;
             decisions.dec[0] = DC_START_TOKEN_WORD;
-            decisions.dec[1] = DC_START_DQ;
+            decisions.dec[1] = DC_START_WORD;
             decisions.dec[2] = DC_APPEND;
             break;
         case CHAR_OPERATOR:
@@ -431,7 +435,7 @@ void handleTokenOperator(t_char_type char_type, int input)
         case CHAR_NORMAL:
             decisions.dec_count = 3;
             decisions.dec[0] = DC_NEXT_TOKEN;
-            decisions.dec[1] = DC_START_NW;
+            decisions.dec[1] = DC_START_WORD;
             decisions.dec[2] = DC_APPEND;
             break;
         case CHAR_WHITESPACE:
@@ -441,12 +445,12 @@ void handleTokenOperator(t_char_type char_type, int input)
         case CHAR_SINGLE_QUOTE:
             decisions.dec_count = 2;
             decisions.dec[0] = DC_NEXT_TOKEN;
-            decisions.dec[1] = DC_START_SQ;
+            decisions.dec[1] = DC_START_WORD;
             break;
         case CHAR_DOUBLE_QUOTE:
             decisions.dec_count = 2;
             decisions.dec[0] = DC_NEXT_TOKEN;
-            decisions.dec[1] = DC_START_DQ;
+            decisions.dec[1] = DC_START_WORD;
             break;
         case CHAR_OPERATOR:
         {
@@ -542,29 +546,18 @@ void exec_decision(char input, char *lexer_buffer, size_t *lexerindex)
     {
         switch (decisions.dec[j])
         {
-            case DC_START_NW:
-                start_word(WORD_NORMAL);
-                break;
-            case DC_END_NW:
-                end_word(lexer_buffer);
-                (*lexerindex)++;
-                break;
-
-            case DC_START_SQ:
-                start_word(WORD_SINGLE_QUOTE);
-                break;
-            case DC_END_SQ:
-                end_word(lexer_buffer);
-                (*lexerindex)++;
-                break;
-
-            case DC_START_DQ:
-                (*active_token)->type = TOKEN_WORD;
-                start_word(WORD_DOUBLE_QUOTE);
-                break;
-            case DC_END_DQ:
-                end_word(lexer_buffer);
-                (*lexerindex)++;
+            case DC_START_WORD:
+            t_word_type quote_state;
+            if (input == '\'')
+                quote_state = WORD_SINGLE_QUOTE;
+            if (input == '"')
+                quote_state = WORD_DOUBLE_QUOTE;
+            else
+                quote_state = WORD_NORMAL;
+            start_word(quote_state);
+            break;
+            case DC_END_WORD:
+                end_word();
                 break;
 
             case DC_START_OPERATOR:
