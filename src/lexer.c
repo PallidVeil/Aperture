@@ -93,7 +93,7 @@ t_word **getLastWord()
 {
     t_word **word;
 
-    word = &(*active_token)->word_type;
+    word = &(*active_token)->quote_state;
     while (*word != NULL)
         word = &(*word)->nextword;
     return word;
@@ -101,7 +101,7 @@ t_word **getLastWord()
 
 void end_word(char *t_buffer)
 {
-    active_token->word_type = WORD_NULL;
+    active_token->quote_state = WORD_NULL;
 }
 
 void start_word(t_word_type type)
@@ -139,7 +139,7 @@ void change_token_type(t_token_type type)
     if (type == TOKEN_WORD)
     {
         (*active_token)->word_active = true;
-        (*active_token)->word_type = WORD_NULL;
+        (*active_token)->quote_state = WORD_NULL;
     }
     else if (type == TOKEN_OPERATOR)
         (*active_token)->operator_type = OP_NONE;
@@ -210,9 +210,9 @@ t_token_type check_token_type(void)
     return token->type;
 }
 
-t_word_type check_word_type()
+t_word_type check_quote_state()
 {
-    return *active_token->word_type;
+    return *active_token->quote_state;
 }
 
 void handleNormalWord(t_char_type char_type)
@@ -401,9 +401,9 @@ void handleTokenNone(t_char_type char_type)
     return;
 }
 
-void handleTokenWord(t_word_type word_type, t_char_type char_type)
+void handleTokenWord(t_word_type quote_state, t_char_type char_type)
 {
-    switch (word_type)
+    switch (quote_state)
     {
         case WORD_NORMAL:
             handleNormalWord(char_type);
@@ -484,7 +484,7 @@ void handleTokenOperator(t_char_type char_type, int input)
 
 
 
-void handleLexerInputTypes(t_token_type token_type, t_word_type word_type, t_char_type char_type, char *input)
+void handleLexerInputTypes(t_token_type token_type, t_word_type quote_state, t_char_type char_type, char *input)
 {
     decisions.dec_count = 0;
     switch (token_type)
@@ -493,7 +493,7 @@ void handleLexerInputTypes(t_token_type token_type, t_word_type word_type, t_cha
             handleTokenNone(char_type);
             return;
         case TOKEN_WORD:
-            handleTokenWord(word_type, char_type);
+            handleTokenWord(quote_state, char_type);
             return;
         case TOKEN_OPERATOR:
             handleTokenOperator(char_type, *input);
@@ -618,16 +618,16 @@ void lexer_read(char *input , t_char_type charType)
     // what i have in my mind is that if there is no active word the function ill allocate a new one if the word ends 
     // we do activeword = activeword-> nextword and if the token is finished we will end the token and start a new one
     t_token_type token_type = check_token_type();
-    t_word_type word_type;
+    t_word_type quote_state;
     if (active_token->word_active)
-        word_type = check_word_type();
+        quote_state = check_quote_state();
     else
-        word_type = WORD_NULL;
+        quote_state = WORD_NULL;
     
     if(charType != CHAR_EOF)
         charType = check_char_type(*input);
 
-    handleLexerInputTypes(token_type, word_type, charType, input);
+    handleLexerInputTypes(token_type, quote_state, charType, input);
     return;
 }
 

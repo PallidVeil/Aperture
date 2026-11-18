@@ -74,7 +74,7 @@ typedef struct s_token
         {
             size_t      start;
             size_t      length;
-            t_word_type word_type;
+            t_word_type quote_state;
         };
         t_operator_type operator_type;
     };
