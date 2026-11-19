@@ -35,6 +35,7 @@ void init_command(t_command *command)
     command->argc = 0;
     command->argv = NULL;
     command->next = NULL;
+    command->next_operator = CMD_END;
 }
 
 bool parser_validate_word(t_parser *parser, t_parser_state last_state)
@@ -192,6 +193,15 @@ void parser_populate_commands(t_parser *parser)
             active_command->argv[argc_index] =
                 strdup(parser->active_parser->value);
             argc_index++;
+        }
+        else if (parser->active_parser->token_type == TOKEN_OPERATOR)
+        {
+            if (parser->active_parser->operator_type == OP_PIPE)
+                active_command->next_operator = CMD_PIPE;
+            else if (parser->active_parser->operator_type == OP_AND)
+                active_command->next_operator = CMD_AND;
+            else if (parser->active_parser->operator_type == OP_OR)
+                active_command->next_operator = CMD_OR;
         }
         parser_next(parser);
     }

@@ -5,12 +5,21 @@
 #include "lexer.h"
 #include "common.h"
 
+typedef enum e_command_operator
+{
+    CMD_END,
+    CMD_PIPE,
+    CMD_AND,
+    CMD_OR
+}   t_command_operator;
+
 typedef struct s_command
 {
-    int argc;
-    char **argv;
-    struct s_command *next;
-} t_command;
+    char                    **argv;
+    size_t                  argc;
+    t_command_operator      next_operator;
+    struct s_command        *next;
+}   t_command;
 
 typedef struct s_parser
 {
