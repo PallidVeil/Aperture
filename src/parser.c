@@ -111,6 +111,9 @@ void parser_validate(t_parser *parser)
                         exit(EXIT_FAILURE);
                 }
             break;
+            case TOKEN_NONE:
+                fprintf(stderr, "token none\n");
+                exit(EXIT_FAILURE);
             default:
                 fprintf(stderr, "Invalid token type\n");
                 exit(EXIT_FAILURE);

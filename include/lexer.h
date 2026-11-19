@@ -82,5 +82,7 @@ typedef struct s_decision
 } i_decision;
 
 int lex(char *buffer, char *lexer_buffer, size_t length, t_token **first_token);
+void free_tokens(t_token *first);
+
 
 #endif

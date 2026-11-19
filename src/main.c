@@ -47,6 +47,7 @@ int main()
         parser_run(&parser, lexer_buffer);
         parser_free(&parser);
 
+        free_tokens(first_token);
         free(buffer);
         free(lexer_buffer);
         break;

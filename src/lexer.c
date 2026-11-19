@@ -664,6 +664,5 @@ int lex(char *buffer, char *lexer_buffer, size_t length, t_token **first_token)
         */
     }
     debug_tokens(*first_token);
-    free_tokens(*first_token);
     return 1;
 }
