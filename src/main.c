@@ -1,6 +1,8 @@
 #include "common.h"
 #include "editor.h"
 #include "lexer.h"
+#include "parser.h"
+
 
 int ReadInput(char* buffer, Editor *editor)
 {
@@ -25,7 +27,7 @@ int main()
     
     Editor editor = {0};
     int error = 0;
-
+    t_parser parser;
     while(1)
     {
         char *buffer = malloc(BUFFER_SIZE);
@@ -40,7 +42,9 @@ int main()
         }
         lex(buffer ,lexer_buffer, editor.length);
         printf("\nYou entered: %s\n", buffer);
-
+        parser_init(&parser, *active_token);
+        parser_run(&parser);
+        parser_free(&parser);
 
         free(buffer);
         free(lexer_buffer);
