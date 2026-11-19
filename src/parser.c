@@ -116,6 +116,28 @@ void parser_validate(t_parser *parser)
     }
 }
 
+void parser_command_count(t_parser *parser)
+{
+    parser->command_count = 1;
+
+    while (parser->active_parser != NULL)
+    {
+        if (parser->active_parser->token_type == TOKEN_WORD)
+        {
+            parser->word_counts[parser->command_count - 1]++;
+        }
+        else if (parser->active_parser->token_type == TOKEN_OPERATOR)
+        {
+            if (parser->active_parser->operator_type == OP_PIPE
+                || parser->active_parser->operator_type == OP_AND
+                || parser->active_parser->operator_type == OP_OR)
+            {
+                parser->command_count++;
+            }
+        }
+        parser_next(parser);
+    }
+}
 
 void parser_run(t_parser *parser)
 {
@@ -129,5 +151,7 @@ void parser_run(t_parser *parser)
 
     parser_validate(parser);
     parser_active_parser = parser->tokens;
+    parser_command_count(parser);
+    parser->active_parser = parser->tokens;
 
 }
