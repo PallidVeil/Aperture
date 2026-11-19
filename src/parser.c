@@ -224,24 +224,63 @@ void parser_populate_commands(t_parser *parser, char *lexer_buffer)
     }
 }
 
+void parser_test(t_parser *parser)
+{
+    t_command *current = parser->commands;
+    size_t command_index = 0;
+
+    printf("\n========== PARSER TEST ==========\n");
+
+    while (current != NULL)
+    {
+        printf("\n===== COMMAND %zu =====\n", command_index);
+
+        printf("Command address: %p\n", (void *)current);
+        printf("argc: %zu\n", current->argc);
+        printf("argv address: %p\n", (void *)current->argv);
+        printf("next_operator: %d\n", current->next_operator);
+
+        if (current->argv != NULL)
+        {
+            for (size_t i = 0; i < current->argc; i++)
+            {
+                printf("argv[%zu]: %s\n",
+                    i,
+                    current->argv[i] ? current->argv[i] : "(NULL)");
+            }
+
+            printf("argv[%zu]: %s\n",
+                current->argc,
+                current->argv[current->argc] == NULL
+                    ? "NULL"
+                    : "NOT NULL");
+        }
+
+        printf("next: %p\n", (void *)current->next);
+
+        current = current->next;
+        command_index++;
+    }
+
+    printf("\n===== END OF COMMAND LIST =====\n");
+    printf("Total commands: %zu\n", command_index);
+    printf("================================\n\n");
+}
+
 void parser_run(t_parser *parser, char *lexer_buffer)
 {
-    t_command *first_command = parser->commands = malloc(sizeof(t_command));
+    t_command *first_command = malloc(sizeof(t_command));
     if (first_command == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for first command\n");
         exit(EXIT_FAILURE);
     }
     init_command(first_command);
-    printf("initialized first command\n");
     parser_validate(parser);
-    printf("validated parser\n");
     parser->active_parser = parser->tokens;
     parser_command_count(parser);
-    printf("command count: %zu\n", parser->command_count);
     parser->active_parser = parser->tokens;
     parser_allocate_commands(parser);
-    printf("allocated commands\n");
     parser_populate_commands(parser, lexer_buffer);
-    printf("populated commands\n");
+    parser_test(parser);
 }
