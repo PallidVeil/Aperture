@@ -38,26 +38,41 @@ void init_command(t_command *command)
     command->next_operator = CMD_END;
 }
 
-bool parser_validate_word(t_parser *parser, t_parser_state last_state)
+char *parser_extract_word(char *buffer, size_t start, size_t length)
 {
+    char *word = malloc(length + 1);
+    if (word == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for word\n");
+        exit(EXIT_FAILURE);
+    }
+    strncpy(word, buffer + start, length);
+    word[length] = '\0';
+    return word;
+}
+
+bool parser_validate_word()
+{
+    // i cant get out of unused error but in the future i will use this 
+    // t_parser *parser, t_parser_state last_state
     return true;
 }
 
-bool parser_validate_pipe(t_parser *parser, t_parser_state last_state)
+bool parser_validate_pipe(t_parser_state last_state)
 {
     if (last_state == PARSER_START || last_state == PARSER_PIPE || last_state == PARSER_AND || last_state == PARSER_OR)
         return false;
     return true;
 }
 
-bool parser_validate_and(t_parser *parser, t_parser_state last_state)
+bool parser_validate_and(t_parser_state last_state)
 {
     if (last_state == PARSER_START || last_state == PARSER_PIPE || last_state == PARSER_AND || last_state == PARSER_OR)
         return false;
     return true;
 }
 
-bool parser_validate_or(t_parser *parser, t_parser_state last_state)
+bool parser_validate_or(t_parser_state last_state)
 {
     if (last_state == PARSER_START || last_state == PARSER_PIPE || last_state == PARSER_AND || last_state == PARSER_OR)
         return false;
@@ -73,22 +88,22 @@ void parser_validate(t_parser *parser)
         switch (parser->active_parser->token_type)
         {
             case TOKEN_WORD:
-                parser_error = parser_validate_word(parser, last_state);
+                parser_error = parser_validate_word();
                 last_state = PARSER_COMMAND;
             break;
             case TOKEN_OPERATOR:
                 switch (parser->active_parser->operator_type)
                 {
                     case OP_PIPE:
-                        parser_error =  parser_validate_pipe(parser, last_state);
+                        parser_error =  parser_validate_pipe(last_state);
                         last_state = PARSER_PIPE;
                     break;
                     case OP_AND:
-                        parser_error = parser_validate_and(parser, last_state);
+                        parser_error = parser_validate_and(last_state);
                         last_state = PARSER_AND;
                     break;
                     case OP_OR:
-                        parser_error = parser_validate_or(parser, last_state);
+                        parser_error = parser_validate_or(last_state);
                         last_state = PARSER_OR;
                     break;
                     default:
@@ -144,7 +159,7 @@ void parser_allocate_commands(t_parser *parser)
 {
     t_command *last_command = NULL;
 
-    for (int i = 0; i < parser->command_count; i++)
+    for (size_t i = 0; i < parser->command_count; i++)
     {
         t_command *new_command = malloc(sizeof(t_command));
         if (new_command == NULL)
@@ -175,9 +190,9 @@ void parser_allocate_commands(t_parser *parser)
     }
 }
 
-void parser_populate_commands(t_parser *parser)
+void parser_populate_commands(t_parser *parser, char *lexer_buffer)
 {
-    int argc_index = 0;
+    size_t argc_index = 0;
     t_command *active_command = parser->commands;
 
     while (parser->active_parser != NULL)
@@ -191,7 +206,7 @@ void parser_populate_commands(t_parser *parser)
             }
 
             active_command->argv[argc_index] =
-                strdup(parser->active_parser->value);
+                strdup(parser_extract_word(lexer_buffer, parser->active_parser->start, parser->active_parser->length));
             argc_index++;
         }
         else if (parser->active_parser->token_type == TOKEN_OPERATOR)
@@ -207,7 +222,7 @@ void parser_populate_commands(t_parser *parser)
     }
 }
 
-void parser_run(t_parser *parser)
+void parser_run(t_parser *parser, char *lexer_buffer)
 {
     t_command *first_command = parser->commands = malloc(sizeof(t_command));
     parser->commands = first_command;
@@ -219,9 +234,9 @@ void parser_run(t_parser *parser)
     init_command(first_command);
 
     parser_validate(parser);
-    parser_active_parser = parser->tokens;
+    parser->active_parser = parser->tokens;
     parser_command_count(parser);
     parser->active_parser = parser->tokens;
     parser_allocate_commands(parser);
-    parser_populate_commands(parser);
+    parser_populate_commands(parser, lexer_buffer);
 }

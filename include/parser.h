@@ -39,4 +39,8 @@ typedef enum e_parser_state
     PARSER_OR
 }   t_parser_state;
 
+void parser_init(t_parser *parser, t_token *tokens);
+void parser_free(t_parser *parser);
+void parser_run(t_parser *parser, char *lexer_buffer);
+
 #endif

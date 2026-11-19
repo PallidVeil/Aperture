@@ -619,10 +619,9 @@ void debug_tokens(t_token *token)
     printf("\n===== END OF TOKEN LIST =====\n");
 }
 
-int lex(char *buffer, char *lexer_buffer, size_t length)
+int lex(char *buffer, char *lexer_buffer, size_t length, t_token **first_token)
 {
-    t_token *first_token = NULL;
-    active_token = &first_token;
+    active_token = first_token;
     *active_token = create_token();
     if(*active_token == NULL)
     {
@@ -664,7 +663,7 @@ int lex(char *buffer, char *lexer_buffer, size_t length)
         
         */
     }
-    debug_tokens(first_token);
-    free_tokens(first_token);
+    debug_tokens(*first_token);
+    free_tokens(*first_token);
     return 1;
 }

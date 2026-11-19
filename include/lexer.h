@@ -81,6 +81,6 @@ typedef struct s_decision
     input_decision dec[3];
 } i_decision;
 
-int lex(char *buffer, char *lexer_buffer, size_t length);
+int lex(char *buffer, char *lexer_buffer, size_t length, t_token **first_token);
 
 #endif

@@ -40,10 +40,11 @@ int main()
             free(buffer);
             break;
         }
-        lex(buffer ,lexer_buffer, editor.length);
+        t_token *first_token = NULL;
+        lex(buffer ,lexer_buffer, editor.length, &first_token);
         printf("\nYou entered: %s\n", buffer);
-        parser_init(&parser, *active_token);
-        parser_run(&parser);
+        parser_init(&parser, first_token);
+        parser_run(&parser, lexer_buffer);
         parser_free(&parser);
 
         free(buffer);
