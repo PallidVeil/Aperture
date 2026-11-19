@@ -139,9 +139,68 @@ void parser_command_count(t_parser *parser)
     }
 }
 
+void parser_allocate_commands(t_parser *parser)
+{
+    t_command *last_command = NULL;
+
+    for (int i = 0; i < parser->command_count; i++)
+    {
+        t_command *new_command = malloc(sizeof(t_command));
+        if (new_command == NULL)
+        {
+            fprintf(stderr, "Failed to allocate memory for command\n");
+            exit(EXIT_FAILURE);
+        }
+
+        init_command(new_command);
+
+        new_command->argc = parser->word_counts[i];
+        new_command->argv = malloc(sizeof(char *) * (new_command->argc + 1));
+
+        if (new_command->argv == NULL)
+        {
+            fprintf(stderr, "Failed to allocate memory for command arguments\n");
+            exit(EXIT_FAILURE);
+        }
+
+        new_command->argv[new_command->argc] = NULL;
+
+        if (parser->commands == NULL)
+            parser->commands = new_command;
+        else
+            last_command->next = new_command;
+
+        last_command = new_command;
+    }
+}
+
+void parser_populate_commands(t_parser *parser)
+{
+    int argc_index = 0;
+    t_command *active_command = parser->commands;
+
+    while (parser->active_parser != NULL)
+    {
+        if (parser->active_parser->token_type == TOKEN_WORD)
+        {
+            if (argc_index >= active_command->argc)
+            {
+                active_command = active_command->next;
+                argc_index = 0;
+            }
+
+            active_command->argv[argc_index] =
+                strdup(parser->active_parser->value);
+            argc_index++;
+        }
+        parser_next(parser);
+    }
+}
+
 void parser_run(t_parser *parser)
 {
     t_command *first_command = parser->commands = malloc(sizeof(t_command));
+    parser->commands = first_command;
     if (first_command == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for first command\n");
@@ -153,5 +212,6 @@ void parser_run(t_parser *parser)
     parser_active_parser = parser->tokens;
     parser_command_count(parser);
     parser->active_parser = parser->tokens;
-
+    parser_allocate_commands(parser);
+    parser_populate_commands(parser);
 }
