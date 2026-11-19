@@ -4,7 +4,7 @@ void parser_init(t_parser *parser, t_token *tokens)
 {
     parser->tokens = tokens;
     parser->active_parser = tokens;
-    parser->word_counts = malloc(sizeof(size_t) * MAX_COMMANDS);
+    parser->word_counts = calloc(MAX_COMMANDS, sizeof(size_t));
     if (parser->word_counts == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for word counts\n");
@@ -12,7 +12,6 @@ void parser_init(t_parser *parser, t_token *tokens)
     }
     parser->command_count = 0;
     parser->commands = NULL;
-
 }
 
 void parser_next(t_parser *parser)
@@ -228,18 +227,21 @@ void parser_populate_commands(t_parser *parser, char *lexer_buffer)
 void parser_run(t_parser *parser, char *lexer_buffer)
 {
     t_command *first_command = parser->commands = malloc(sizeof(t_command));
-    parser->commands = first_command;
     if (first_command == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for first command\n");
         exit(EXIT_FAILURE);
     }
     init_command(first_command);
-
+    printf("initialized first command\n");
     parser_validate(parser);
+    printf("validated parser\n");
     parser->active_parser = parser->tokens;
     parser_command_count(parser);
+    printf("command count: %zu\n", parser->command_count);
     parser->active_parser = parser->tokens;
     parser_allocate_commands(parser);
+    printf("allocated commands\n");
     parser_populate_commands(parser, lexer_buffer);
+    printf("populated commands\n");
 }
